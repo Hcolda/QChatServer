@@ -54,12 +54,15 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-    - name: run-vcpkg
+    - name: Run vcpkg
       uses: lukka/run-vcpkg@v11.5
       with:
-        vcpkgGitURL: https://github.com/quqiOnfree/vcpkg.git
+        vcpkgGitURL: https://github.com/microsoft/vcpkg.git
         runVcpkgInstall: true
-        vcpkgGitCommitId: 4c569f8069f96b0eb89a094e2c9ffc20b9c76fcd
+        vcpkgGitCommitId: 0ca64b4e1c70fa6d9f53b369b8f3f0843797c20c
+
+    - name: Initiate Git submodules
+      run: git submodule update --init
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.

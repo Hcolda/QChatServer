@@ -1,13 +1,3 @@
-<!--
- * @Author: haoERROR 104574610+haoERROR@users.noreply.github.com
- * @Date: 2023-08-18 22:09:39
- * @LastEditors: haoERROR 104574610+haoERROR@users.noreply.github.com
- * @LastEditTime: 2023-08-18 22:27:12
- * @FilePath: \TEST\using.md
- * @Description: 
- * 
- * Copyright (c) 2023 by ${git_name_email}, All Rights Reserved. 
--->
 ### 登录接口
 **接口定义：**
 - 请求终端：`客户端`
@@ -32,9 +22,9 @@
 **原始数据：**
 ```json
 {
-    "state":"success",
-    "uuid":"225BD9F9-493D-F9E5-50A4-9BE0C59FB859",
-    "token":"r7TE6Jh6qQOJc2tBTye1XrjTr3wFU4XjuyZhnla79SvMeReu3x4qhDd3J08HtHVj"
+    "state":"success",
+    "uuid":"225BD9F9-493D-F9E5-50A4-9BE0C59FB859",
+    "token":"r7TE6Jh6qQOJc2tBTye1XrjTr3wFU4XjuyZhnla79SvMeReu3x4qhDd3J08HtHVj"
 }
 ```
 
@@ -63,9 +53,9 @@
 **原始数据：**
 ```json
 {
-    "state":"success",
-    "uuid":"225BD9F9-493D-F9E5-50A4-9BE0C59FB859",
-    "token":"r7TE6Jh6qQOJc2tBTye1XrjTr3wFU4XjuyZhnla79SvMeReu3x4qhDd3J08HtHVj"
+    "state":"success",
+    "uuid":"225BD9F9-493D-F9E5-50A4-9BE0C59FB859",
+    "token":"r7TE6Jh6qQOJc2tBTye1XrjTr3wFU4XjuyZhnla79SvMeReu3x4qhDd3J08HtHVj"
 }
 ```
 
@@ -91,7 +81,7 @@
 **原始数据：**
 ```json
 {
-    "state":"success"
+    "state":"success"
 }
 ```
 
@@ -119,9 +109,9 @@
 **原始数据：**
 ```json
 {
-    "state":"success",
-    "key":"cXFkd0E4TWtUT2twbEp3cU5ncTNQQTlaZ2lFRm4zU2Y=\n",
-    "iv":"YUY1M2phMm45dUUyUlZnRw==\n"
+    "state":"success",
+    "key":"cXFkd0E4TWtUT2twbEp3cU5ncTNQQTlaZ2lFRm4zU2Y=\n",
+    "iv":"YUY1M2phMm45dUUyUlZnRw==\n"
 }
 ```
 
@@ -150,8 +140,8 @@
 **原始数据：**
 ```json
 {
-    "state":"success",
-    "key":"cXFkd0E4TWtUT2twbEp3cU5ncTNQQTlaZ2lFRm4zU2Y=\n",
-    "iv":"YUY1M2phMm45dUUyUlZnRw==\n"
+    "state":"success",
+    "key":"cXFkd0E4TWtUT2twbEp3cU5ncTNQQTlaZ2lFRm4zU2Y=\n",
+    "iv":"YUY1M2phMm45dUUyUlZnRw==\n"
 }
 ```

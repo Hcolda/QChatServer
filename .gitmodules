@@ -1,0 +1,6 @@
+[submodule "utils/parser"]
+	path = utils/parser
+	url = https://github.com/Hcolda/FileParser.git
+[submodule "utils/kcp"]
+	path = utils/kcp
+	url = https://github.com/Hcolda/asio-kcp.git
