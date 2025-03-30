@@ -1,7 +1,7 @@
 #ifndef GROUP_IDENTIFICATION
 #define GROUP_IDENTIFICATION
 
-#include <xhash>
+#include <functional>
 
 namespace qls
 {

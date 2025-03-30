@@ -17,7 +17,7 @@
             std::to_string(std::stacktrace::current())); \
         }(errmsg)
 
-#include <xhash>
+#include <functional>
 #include <cstddef>
 
 #include "groupid.hpp"
