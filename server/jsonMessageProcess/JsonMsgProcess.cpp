@@ -99,7 +99,10 @@ bool JsonMessageProcessCommandList::removeCommand(std::string_view function_name
         return false;
 
     std::unique_lock<std::shared_mutex> unique_lock1(m_function_map_mutex);
-    m_function_map.erase(function_name);
+    auto itor = m_function_map.find(function_name);
+    if (itor == m_function_map.end())
+        return false;
+    m_function_map.erase(itor);
     return true;
 }
 
