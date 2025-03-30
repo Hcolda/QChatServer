@@ -573,7 +573,7 @@ void User::notifyAll(std::string_view data)
     for (const auto& [connection_ptr, type]: m_impl->m_connection_map) {
         asio::async_write(connection_ptr->socket, asio::buffer(*buffer_ptr),
             asio::bind_executor(connection_ptr->strand,
-                [this, buffer_ptr](std::error_code ec, std::size_t n) {
+                [buffer_ptr](std::error_code ec, std::size_t) {
                     if (ec)
                         serverLogger.error('[', ec.category().name(), ']', ec.message());
             }));

@@ -1,15 +1,16 @@
 #include "privateRoom.h"
 
-#include <stdexcept>
-#include <vector>
-#include <atomic>
+#include <memory>
+#include <system_error>
+#include <memory_resource>
+#include <map>
 #include <shared_mutex>
+#include <atomic>
+
 #include <Json.h>
 
-#include "qls_error.h"
 #include "manager.h"
 #include "qls_error.h"
-#include "returnStateMessage.hpp"
 
 extern qls::Manager serverManager;
 
@@ -22,7 +23,7 @@ struct PrivateRoomImpl
 {
     const UserID m_user_id_1, m_user_id_2;
 
-    std::atomic<bool>               m_can_be_used;
+    std::atomic<bool>       m_can_be_used;
 
     std::map<std::chrono::utc_clock::time_point, MessageStructure>
                             m_message_map;

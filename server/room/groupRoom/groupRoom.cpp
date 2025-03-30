@@ -1,7 +1,5 @@
 #include "groupRoom.h"
 
-#include <stdexcept>
-#include <algorithm>
 #include <format>
 #include <memory>
 #include <system_error>
@@ -15,7 +13,6 @@
 
 #include "manager.h"
 #include "qls_error.h"
-#include "returnStateMessage.hpp"
 
 extern qls::Manager serverManager;
 
@@ -333,7 +330,7 @@ std::unordered_map<UserID, PermissionType>
     if (!m_impl->m_can_be_used)
         throw std::system_error(make_error_code(qls_errc::group_room_unable_to_use));
 
-    return std::move(m_impl->m_permission.getUserPermissionList());
+    return m_impl->m_permission.getUserPermissionList();
 }
 
 UserID GroupRoom::getAdministrator() const
@@ -384,14 +381,14 @@ std::vector<UserID> GroupRoom::getDefaultUserList() const
 {
     if (!m_impl->m_can_be_used)
         throw std::system_error(make_error_code(qls_errc::group_room_unable_to_use));
-    return std::move(m_impl->m_permission.getDefaultUserList());
+    return m_impl->m_permission.getDefaultUserList();
 }
 
 std::vector<UserID> GroupRoom::getOperatorList() const
 {
     if (!m_impl->m_can_be_used)
         throw std::system_error(make_error_code(qls_errc::group_room_unable_to_use));
-    return std::move(m_impl->m_permission.getOperatorList());
+    return m_impl->m_permission.getOperatorList();
 }
 
 bool GroupRoom::muteUser(UserID executor_id, UserID user_id, const std::chrono::minutes& mins)

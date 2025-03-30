@@ -17,8 +17,8 @@ struct Connection
     asio::strand<asio::any_io_executor> strand;
 
     Connection(asio::ip::tcp::socket s, asio::ssl::context& context):
-        strand(asio::make_strand(s.get_executor())),
-        socket(std::move(s), context) {}
+        socket(std::move(s), context),
+        strand(asio::make_strand(s.get_executor())) {}
 
     ~Connection()
     {

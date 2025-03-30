@@ -6,16 +6,24 @@
 #include <source_location>
 #include <string_view>
 #include <string>
+#include <filesystem>
 
-#define ERROR_WITH_STACKTRACE(errmsg) \
-    [](std::string_view err, std::source_location location = std::source_location::current()) { \
-        return std::format("error: {}\nin file \"{}\" line {}, function \"{}\"\nstack trace: \n{}\n", \
-            err, \
-            location.file_name(), \
-            location.line(), \
-            location.function_name(), \
-            std::to_string(std::stacktrace::current())); \
-        }(errmsg)
+#if defined(_MSC_VER) && defined(__cpp_lib_stacktrace) && defined(__cpp_lib_source_location) && defined(__cpp_lib_format)
+    #define ERROR_WITH_STACKTRACE(errmsg) \
+        [](std::string_view err, std::source_location location = std::source_location::current()) { \
+            return std::format("error: {}\nin file \"{}\" line {}, function \"{}\"\nstack trace: \n{}\n", \
+                err, \
+                location.file_name(), \
+                location.line(), \
+                location.function_name(), \
+                std::to_string(std::stacktrace::current())); \
+            }(errmsg)
+#else
+    #define ERROR_WITH_STACKTRACE(errmsg) \
+        std::format("error: {}\nin file \"{}\" line {}\n", \
+            errmsg, std::filesystem::path(__FILE__).filename().string(), \
+            __LINE__)
+#endif // __cpp_lib_stacktrace
 
 #include <functional>
 #include <cstddef>

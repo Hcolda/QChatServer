@@ -4,8 +4,8 @@
 #include <chrono>
 #include <asio.hpp>
 #include <vector>
+#include <string_view>
 
-#include "qls_error.h"
 #include "userid.hpp"
 #include "groupid.hpp"
 #include "room.h"

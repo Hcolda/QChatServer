@@ -3,7 +3,6 @@
 
 #include <chrono>
 #include <string_view>
-#include <memory_resource>
 #include <memory>
 
 #include "userid.hpp"
