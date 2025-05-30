@@ -16,6 +16,9 @@ jobs:
         id: linter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: 'llvm'
+          tidy-checks: 'boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*'
 
       - name: Fail fast?!
         if: steps.linter.outputs.clang-format-checks-failed > 0
