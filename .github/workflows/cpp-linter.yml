@@ -35,7 +35,11 @@ jobs:
           -DCMAKE_C_COMPILER=gcc
           -DCMAKE_BUILD_TYPE=Release
           -DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=1
           -S ${{ github.workspace }}
+
+      - name: Get compile_commands.json
+        run: ln -s build/compile_commands.json .
 
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
@@ -44,6 +48,8 @@ jobs:
         with:
           style: 'llvm'
           tidy-checks: 'boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*'
+          extra-args: '-std=c++23'
+          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
 
       - name: Fail fast?!
         if: steps.linter.outputs.clang-format-checks-failed > 0
