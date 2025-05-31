@@ -1,25 +1,23 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-#include <string_view>
 #include <memory>
+#include <string_view>
 
 class InputImpl;
-namespace qls
-{
+namespace qls {
 
-class Input final
-{
+class Input final {
 public:
-    Input();
-    ~Input();
+  Input();
+  ~Input();
 
-    void init();
+  void init();
 
-    bool input(std::string_view command);
+  bool input(std::string_view command);
 
 private:
-    std::unique_ptr<InputImpl> m_impl;
+  std::unique_ptr<InputImpl> m_impl;
 };
 
 } // namespace qls

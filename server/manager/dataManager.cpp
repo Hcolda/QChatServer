@@ -5,11 +5,8 @@
 // manager
 extern qls::Manager serverManager;
 
-namespace qls
-{
-    
-void DataManager::init()
-{
-}
+namespace qls {
+
+void DataManager::init() {}
 
 } // namespace qls

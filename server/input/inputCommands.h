@@ -5,40 +5,35 @@
 
 #include "option.hpp"
 
-namespace qls
-{
+namespace qls {
 
 class Command;
-struct CommandInfo
-{
-    opt::Option option;
-    std::string description;
+struct CommandInfo {
+  opt::Option option;
+  std::string description;
 };
 
-class Command
-{
+class Command {
 public:
-    Command() = default;
-    virtual ~Command() = default;
-    virtual void setArguments(const opt::Option& options) {}
-    virtual bool execute() { return true; }
-    virtual CommandInfo registerCommand() { return {{}, "empty description"}; }
+  Command() = default;
+  virtual ~Command() = default;
+  virtual void setArguments(const opt::Option &options) {}
+  virtual bool execute() { return true; }
+  virtual CommandInfo registerCommand() { return {{}, "empty description"}; }
 };
 
-class stop_command: public Command
-{
+class stop_command : public Command {
 public:
-    stop_command() = default;
-    virtual bool execute();
-    virtual CommandInfo registerCommand();
+  stop_command() = default;
+  virtual bool execute();
+  virtual CommandInfo registerCommand();
 };
 
-class show_user_command: public Command
-{
+class show_user_command : public Command {
 public:
-    show_user_command() = default;
-    virtual bool execute();
-    virtual CommandInfo registerCommand();
+  show_user_command() = default;
+  virtual bool execute();
+  virtual CommandInfo registerCommand();
 };
 
 } // namespace qls

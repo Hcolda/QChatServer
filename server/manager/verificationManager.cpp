@@ -5,386 +5,349 @@
 #include <shared_mutex>
 #include <unordered_map>
 
-#include "user.h"
 #include "groupid.hpp"
-#include "userid.hpp"
 #include "manager.h"
+#include "user.h"
+#include "userid.hpp"
 
 // manager
 extern qls::Manager serverManager;
 
 namespace qls {
 
-struct FriendVerification
-{
-    UserID  applicator;
-    UserID  controller;
+struct FriendVerification {
+  UserID applicator;
+  UserID controller;
 };
 
-struct GroupVerification
-{
-    UserID  applicator;
-    GroupID controller;
+struct GroupVerification {
+  UserID applicator;
+  GroupID controller;
 };
 
 } // namespace qls
 
 namespace std {
 
-template<>
-struct hash<qls::FriendVerification>{
+template <> struct hash<qls::FriendVerification> {
 public:
-    std::size_t operator()(const qls::FriendVerification &friend_verification) const 
-    {
-        hash<long long> local_hash{};
-        return local_hash(friend_verification.applicator.getOriginValue()) ^
-            local_hash(friend_verification.controller.getOriginValue());
-    }
+  std::size_t
+  operator()(const qls::FriendVerification &friend_verification) const {
+    hash<long long> local_hash{};
+    return local_hash(friend_verification.applicator.getOriginValue()) ^
+           local_hash(friend_verification.controller.getOriginValue());
+  }
 };
 
-template<>
-struct equal_to<qls::FriendVerification>{
+template <> struct equal_to<qls::FriendVerification> {
 public:
-    bool operator()(const qls::FriendVerification &friend_verification1,
-        const qls::FriendVerification &friend_verification2) const
-    {
-        return friend_verification1.applicator == friend_verification2.applicator &&
-            friend_verification1.controller == friend_verification2.controller;
-    }
+  bool operator()(const qls::FriendVerification &friend_verification1,
+                  const qls::FriendVerification &friend_verification2) const {
+    return friend_verification1.applicator == friend_verification2.applicator &&
+           friend_verification1.controller == friend_verification2.controller;
+  }
 };
 
-template<>
-struct hash<qls::GroupVerification>{
+template <> struct hash<qls::GroupVerification> {
 public:
-    std::size_t operator()(const qls::GroupVerification &group_verification) const 
-    {
-        hash<long long> local_hash{};
-        return local_hash(group_verification.applicator.getOriginValue()) ^
-            local_hash(group_verification.controller.getOriginValue());
-    }
+  std::size_t
+  operator()(const qls::GroupVerification &group_verification) const {
+    hash<long long> local_hash{};
+    return local_hash(group_verification.applicator.getOriginValue()) ^
+           local_hash(group_verification.controller.getOriginValue());
+  }
 };
 
-template<>
-struct equal_to<qls::GroupVerification>{
+template <> struct equal_to<qls::GroupVerification> {
 public:
-    bool operator()(const qls::GroupVerification &group_verification1,
-        const qls::GroupVerification &group_verification2) const
-    {
-        return group_verification1.applicator == group_verification2.applicator &&
-            group_verification1.controller == group_verification2.controller;
-    }
+  bool operator()(const qls::GroupVerification &group_verification1,
+                  const qls::GroupVerification &group_verification2) const {
+    return group_verification1.applicator == group_verification2.applicator &&
+           group_verification1.controller == group_verification2.controller;
+  }
 };
 
-} // namespce std
+} // namespace std
 
 namespace qls {
 
-struct VerificationManager::VerificationManagerImpl
-{
-    /**
-     * @brief Map of friend room verification requests.
-     */
-    std::unordered_map<FriendVerification, bool>
-                        m_friendRoomVerification_map;
-    std::shared_mutex   m_friendRoomVerification_map_mutex;
+struct VerificationManager::VerificationManagerImpl {
+  /**
+   * @brief Map of friend room verification requests.
+   */
+  std::unordered_map<FriendVerification, bool> m_friendRoomVerification_map;
+  std::shared_mutex m_friendRoomVerification_map_mutex;
 
-    /**
-     * @brief Map of group room verification requests.
-     */
-    std::unordered_map<GroupVerification, bool>
-                        m_groupVerification_map;
-    std::shared_mutex   m_groupVerification_map_mutex;
+  /**
+   * @brief Map of group room verification requests.
+   */
+  std::unordered_map<GroupVerification, bool> m_groupVerification_map;
+  std::shared_mutex m_groupVerification_map_mutex;
 };
 
-VerificationManager::VerificationManager():
-    m_impl(std::make_unique<VerificationManagerImpl>())
-{
-}
+VerificationManager::VerificationManager()
+    : m_impl(std::make_unique<VerificationManagerImpl>()) {}
 
 VerificationManager::~VerificationManager() noexcept = default;
 
-void VerificationManager::init()
-{
-    // sql init
+void VerificationManager::init() {
+  // sql init
 }
 
-void VerificationManager::applyFriendRoomVerification(UserID sender, UserID receiver)
-{
-    if (sender == receiver) {
-        throw std::system_error(qls_errc::invalid_verification);
-    }
-    if (!serverManager.hasUser(sender)) {
-        throw std::system_error(
-            qls_errc::user_not_existed,
-            "the id of sender is invalid");
-    }
-    if (!serverManager.hasUser(receiver)) {
-        throw std::system_error(
-            qls_errc::user_not_existed,
-            "the id of receiver is invalid");
-    }
+void VerificationManager::applyFriendRoomVerification(UserID sender,
+                                                      UserID receiver) {
+  if (sender == receiver) {
+    throw std::system_error(qls_errc::invalid_verification);
+  }
+  if (!serverManager.hasUser(sender)) {
+    throw std::system_error(qls_errc::user_not_existed,
+                            "the id of sender is invalid");
+  }
+  if (!serverManager.hasUser(receiver)) {
+    throw std::system_error(qls_errc::user_not_existed,
+                            "the id of receiver is invalid");
+  }
 
-    // check if they are friends
-    if (!serverManager.hasPrivateRoom(sender, receiver)) {
-        throw std::system_error(qls_errc::private_room_existed);
-    }
+  // check if they are friends
+  if (!serverManager.hasPrivateRoom(sender, receiver)) {
+    throw std::system_error(qls_errc::private_room_existed);
+  }
 
-    {
-        std::unique_lock lock(m_impl->m_friendRoomVerification_map_mutex);
-
-        if (m_impl->m_friendRoomVerification_map.find(
-            { sender, receiver })
-            != m_impl->m_friendRoomVerification_map.cend()) {
-            throw std::system_error(qls_errc::verification_existed);
-        }
-        m_impl->m_friendRoomVerification_map.emplace(
-            FriendVerification{ sender, receiver },
-            false);
-    }
-    
-    // sender
-    {
-        qls::Verification::UserVerification sender_uv;
-
-        sender_uv.user_id = receiver;
-        sender_uv.verification_type =
-            qls::Verification::VerificationType::Sent;
-
-        auto ptr = serverManager.getUser(sender);
-        ptr->addFriendVerification(receiver, std::move(sender_uv));
-    }
-
-    // receiver
-    {
-        qls::Verification::UserVerification receiver_uv;
-
-        receiver_uv.user_id = sender;
-        receiver_uv.verification_type =
-            qls::Verification::VerificationType::Received;
-
-        auto ptr = serverManager.getUser(receiver);
-        ptr->addFriendVerification(sender, std::move(receiver_uv));
-    }
-}
-
-bool VerificationManager::hasFriendRoomVerification(UserID sender, UserID receiver) const
-{
-    if (sender == receiver) {
-        return false;
-    }
-
-    std::shared_lock lock(m_impl->m_friendRoomVerification_map_mutex);
-    return m_impl->m_friendRoomVerification_map.find(
-        { sender, receiver }) !=
-        m_impl->m_friendRoomVerification_map.cend();
-}
-
-void VerificationManager::acceptFriendVerification(UserID sender, UserID receiver)
-{
-    if (sender == receiver) {
-        throw std::system_error(qls_errc::invalid_verification);
-    }
-
-    {
-        std::unique_lock lock(m_impl->m_friendRoomVerification_map_mutex);
-
-        auto iter = m_impl->m_friendRoomVerification_map.find(
-            { sender, receiver });
-        if (iter == m_impl->m_friendRoomVerification_map.cend()) {
-            throw std::system_error(qls_errc::verification_not_existed);
-        }
-
-        iter->second = true;
-    }
-
-    GroupID group_id = serverManager.addPrivateRoom(sender, receiver);
-    // update the 1st user's friend list
-    {
-        auto ptr = serverManager.getUser(sender);
-        ptr->updateFriendList(
-            [receiver](std::unordered_set<qls::UserID>& set){
-            set.insert(receiver);
-        });
-    }
-    
-    // update the 2nd user's friend list
-    {
-        auto ptr = serverManager.getUser(receiver);
-        ptr->updateFriendList(
-            [sender](std::unordered_set<qls::UserID>& set){
-            set.insert(sender);
-        });
-    }
-
-    this->removeFriendRoomVerification(sender, receiver);
-}
-
-void VerificationManager::rejectFriendVerification(UserID sender, UserID receiver)
-{
-    if (sender == receiver) {
-        throw std::system_error(qls_errc::invalid_verification);
-    }
-
-    this->removeFriendRoomVerification(sender, receiver);
-}
-
-bool VerificationManager::isFriendVerified(UserID sender, UserID receiver) const
-{
-    if (sender == receiver) {
-        throw std::system_error(qls_errc::invalid_verification);
-    }
-
+  {
     std::unique_lock lock(m_impl->m_friendRoomVerification_map_mutex);
 
-    auto iter = m_impl->m_friendRoomVerification_map.find(
-        { sender, receiver });
-    if (iter == m_impl->m_friendRoomVerification_map.cend()) {
-        throw std::system_error(qls_errc::verification_not_existed);
+    if (m_impl->m_friendRoomVerification_map.find({sender, receiver}) !=
+        m_impl->m_friendRoomVerification_map.cend()) {
+      throw std::system_error(qls_errc::verification_existed);
     }
+    m_impl->m_friendRoomVerification_map.emplace(
+        FriendVerification{sender, receiver}, false);
+  }
 
-    return iter->second;
-}
+  // sender
+  {
+    qls::Verification::UserVerification sender_uv;
 
-void VerificationManager::removeFriendRoomVerification(UserID sender, UserID receiver)
-{
-    if (sender == receiver) {
-        throw std::system_error(qls_errc::invalid_verification);
-    }
+    sender_uv.user_id = receiver;
+    sender_uv.verification_type = qls::Verification::VerificationType::Sent;
 
-    {
-        std::unique_lock lock(m_impl->m_friendRoomVerification_map_mutex);
-
-        auto iter = m_impl->m_friendRoomVerification_map.find(
-            { sender, receiver });
-        if (iter == m_impl->m_friendRoomVerification_map.cend()) {
-            return;
-        }
-
-        m_impl->m_friendRoomVerification_map.erase(iter);
-    }
-
-    serverManager.getUser(sender)
-        ->removeFriendVerification(receiver);
-    serverManager.getUser(receiver)
-        ->removeFriendVerification(sender);
-}
-
-void VerificationManager::applyGroupRoomVerification(UserID sender, GroupID receiver)
-{
-    if (!serverManager.hasGroupRoom(receiver)) {
-            throw std::system_error(qls_errc::group_room_not_existed);
-    }
-    if (!serverManager.hasUser(sender)) {
-            throw std::system_error(qls_errc::user_not_existed);
-    }
-
-    {
-        std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
-
-        if (m_impl->m_groupVerification_map.find(
-            { sender, receiver })
-            != m_impl->m_groupVerification_map.cend()) {
-            throw std::system_error(qls_errc::verification_not_existed);
-        }
-
-        m_impl->m_groupVerification_map.emplace(
-            GroupVerification{sender, receiver},
-            false);
-    }
-
-    {
-        qls::Verification::GroupVerification sender_uv;
-
-        sender_uv.group_id = receiver;
-        sender_uv.user_id = sender;
-        sender_uv.verification_type = qls::Verification::Sent;
-
-        auto ptr = serverManager.getUser(sender);
-        ptr->addGroupVerification(receiver, std::move(sender_uv));
-    }
-
-    // Only modify the administrator's verification list
-    // Because of over consumption of computer power
-    {
-        qls::Verification::GroupVerification receiver_uv;
-
-        receiver_uv.group_id = receiver;
-        receiver_uv.user_id = sender;
-        receiver_uv.verification_type = qls::Verification::Received;
-
-        UserID adminID = serverManager.getGroupRoom(receiver)->getAdministrator();
-        auto ptr = serverManager.getUser(adminID);
-        ptr->addGroupVerification(receiver, std::move(receiver_uv));
-    }
-}
-
-bool VerificationManager::hasGroupRoomVerification(UserID sender, GroupID receiver) const
-{
-    std::shared_lock lock(m_impl->m_groupVerification_map_mutex);
-
-    return m_impl->m_groupVerification_map.find(
-        { sender, receiver }) !=
-        m_impl->m_groupVerification_map.cend();
-}
-
-void VerificationManager::acceptGroupRoom(UserID sender, GroupID receiver)
-{
-    {
-        std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
-
-        auto iter = m_impl->m_groupVerification_map.find(
-            { sender, receiver });
-        if (iter == m_impl->m_groupVerification_map.cend()) {
-            throw std::system_error(qls_errc::verification_not_existed);
-        }
-
-        iter->second = true;
-    }
-
-    bool _ = serverManager.getGroupRoom(receiver)->addMember(sender);
-    // update user's list
     auto ptr = serverManager.getUser(sender);
-    ptr->updateGroupList([receiver](std::unordered_set<qls::GroupID>& set){
-        set.insert(receiver);
+    ptr->addFriendVerification(receiver, std::move(sender_uv));
+  }
+
+  // receiver
+  {
+    qls::Verification::UserVerification receiver_uv;
+
+    receiver_uv.user_id = sender;
+    receiver_uv.verification_type =
+        qls::Verification::VerificationType::Received;
+
+    auto ptr = serverManager.getUser(receiver);
+    ptr->addFriendVerification(sender, std::move(receiver_uv));
+  }
+}
+
+bool VerificationManager::hasFriendRoomVerification(UserID sender,
+                                                    UserID receiver) const {
+  if (sender == receiver) {
+    return false;
+  }
+
+  std::shared_lock lock(m_impl->m_friendRoomVerification_map_mutex);
+  return m_impl->m_friendRoomVerification_map.find({sender, receiver}) !=
+         m_impl->m_friendRoomVerification_map.cend();
+}
+
+void VerificationManager::acceptFriendVerification(UserID sender,
+                                                   UserID receiver) {
+  if (sender == receiver) {
+    throw std::system_error(qls_errc::invalid_verification);
+  }
+
+  {
+    std::unique_lock lock(m_impl->m_friendRoomVerification_map_mutex);
+
+    auto iter = m_impl->m_friendRoomVerification_map.find({sender, receiver});
+    if (iter == m_impl->m_friendRoomVerification_map.cend()) {
+      throw std::system_error(qls_errc::verification_not_existed);
+    }
+
+    iter->second = true;
+  }
+
+  GroupID group_id = serverManager.addPrivateRoom(sender, receiver);
+  // update the 1st user's friend list
+  {
+    auto ptr = serverManager.getUser(sender);
+    ptr->updateFriendList([receiver](std::unordered_set<qls::UserID> &set) {
+      set.insert(receiver);
     });
-    this->removeGroupRoomVerification(std::move(sender), std::move(receiver));
+  }
+
+  // update the 2nd user's friend list
+  {
+    auto ptr = serverManager.getUser(receiver);
+    ptr->updateFriendList(
+        [sender](std::unordered_set<qls::UserID> &set) { set.insert(sender); });
+  }
+
+  this->removeFriendRoomVerification(sender, receiver);
 }
 
-void VerificationManager::rejectGroupRoom(UserID sender, GroupID receiver)
-{
-    this->removeGroupRoomVerification(sender, receiver);
+void VerificationManager::rejectFriendVerification(UserID sender,
+                                                   UserID receiver) {
+  if (sender == receiver) {
+    throw std::system_error(qls_errc::invalid_verification);
+  }
+
+  this->removeFriendRoomVerification(sender, receiver);
 }
 
-bool VerificationManager::isGroupRoomVerified(UserID sender, GroupID receiver) const
-{
+bool VerificationManager::isFriendVerified(UserID sender,
+                                           UserID receiver) const {
+  if (sender == receiver) {
+    throw std::system_error(qls_errc::invalid_verification);
+  }
+
+  std::unique_lock lock(m_impl->m_friendRoomVerification_map_mutex);
+
+  auto iter = m_impl->m_friendRoomVerification_map.find({sender, receiver});
+  if (iter == m_impl->m_friendRoomVerification_map.cend()) {
+    throw std::system_error(qls_errc::verification_not_existed);
+  }
+
+  return iter->second;
+}
+
+void VerificationManager::removeFriendRoomVerification(UserID sender,
+                                                       UserID receiver) {
+  if (sender == receiver) {
+    throw std::system_error(qls_errc::invalid_verification);
+  }
+
+  {
+    std::unique_lock lock(m_impl->m_friendRoomVerification_map_mutex);
+
+    auto iter = m_impl->m_friendRoomVerification_map.find({sender, receiver});
+    if (iter == m_impl->m_friendRoomVerification_map.cend()) {
+      return;
+    }
+
+    m_impl->m_friendRoomVerification_map.erase(iter);
+  }
+
+  serverManager.getUser(sender)->removeFriendVerification(receiver);
+  serverManager.getUser(receiver)->removeFriendVerification(sender);
+}
+
+void VerificationManager::applyGroupRoomVerification(UserID sender,
+                                                     GroupID receiver) {
+  if (!serverManager.hasGroupRoom(receiver)) {
+    throw std::system_error(qls_errc::group_room_not_existed);
+  }
+  if (!serverManager.hasUser(sender)) {
+    throw std::system_error(qls_errc::user_not_existed);
+  }
+
+  {
     std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
 
-    auto iter = m_impl->m_groupVerification_map.find(
-        { sender, receiver });
-    if (iter == m_impl->m_groupVerification_map.cend()) {
-        throw std::system_error(qls_errc::verification_not_existed);
+    if (m_impl->m_groupVerification_map.find({sender, receiver}) !=
+        m_impl->m_groupVerification_map.cend()) {
+      throw std::system_error(qls_errc::verification_not_existed);
     }
 
-    return iter->second;
+    m_impl->m_groupVerification_map.emplace(GroupVerification{sender, receiver},
+                                            false);
+  }
+
+  {
+    qls::Verification::GroupVerification sender_uv;
+
+    sender_uv.group_id = receiver;
+    sender_uv.user_id = sender;
+    sender_uv.verification_type = qls::Verification::Sent;
+
+    auto ptr = serverManager.getUser(sender);
+    ptr->addGroupVerification(receiver, std::move(sender_uv));
+  }
+
+  // Only modify the administrator's verification list
+  // Because of over consumption of computer power
+  {
+    qls::Verification::GroupVerification receiver_uv;
+
+    receiver_uv.group_id = receiver;
+    receiver_uv.user_id = sender;
+    receiver_uv.verification_type = qls::Verification::Received;
+
+    UserID adminID = serverManager.getGroupRoom(receiver)->getAdministrator();
+    auto ptr = serverManager.getUser(adminID);
+    ptr->addGroupVerification(receiver, std::move(receiver_uv));
+  }
 }
 
-void VerificationManager::removeGroupRoomVerification(UserID sender, GroupID receiver)
-{
-    {
-        std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
+bool VerificationManager::hasGroupRoomVerification(UserID sender,
+                                                   GroupID receiver) const {
+  std::shared_lock lock(m_impl->m_groupVerification_map_mutex);
 
-        auto iter = m_impl->m_groupVerification_map.find(
-            { sender, receiver });
-        if (iter == m_impl->m_groupVerification_map.cend()) {
-            throw std::system_error(qls_errc::verification_not_existed);
-        }
+  return m_impl->m_groupVerification_map.find({sender, receiver}) !=
+         m_impl->m_groupVerification_map.cend();
+}
 
-        m_impl->m_groupVerification_map.erase(iter);
+void VerificationManager::acceptGroupRoom(UserID sender, GroupID receiver) {
+  {
+    std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
+
+    auto iter = m_impl->m_groupVerification_map.find({sender, receiver});
+    if (iter == m_impl->m_groupVerification_map.cend()) {
+      throw std::system_error(qls_errc::verification_not_existed);
     }
-    UserID adminID = serverManager.getGroupRoom(receiver)->getAdministrator();
-    serverManager.getUser(adminID)
-        ->removeGroupVerification(receiver, sender);
-    serverManager.getUser(sender)->removeGroupVerification(receiver, sender);
+
+    iter->second = true;
+  }
+
+  bool _ = serverManager.getGroupRoom(receiver)->addMember(sender);
+  // update user's list
+  auto ptr = serverManager.getUser(sender);
+  ptr->updateGroupList([receiver](std::unordered_set<qls::GroupID> &set) {
+    set.insert(receiver);
+  });
+  this->removeGroupRoomVerification(std::move(sender), std::move(receiver));
+}
+
+void VerificationManager::rejectGroupRoom(UserID sender, GroupID receiver) {
+  this->removeGroupRoomVerification(sender, receiver);
+}
+
+bool VerificationManager::isGroupRoomVerified(UserID sender,
+                                              GroupID receiver) const {
+  std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
+
+  auto iter = m_impl->m_groupVerification_map.find({sender, receiver});
+  if (iter == m_impl->m_groupVerification_map.cend()) {
+    throw std::system_error(qls_errc::verification_not_existed);
+  }
+
+  return iter->second;
+}
+
+void VerificationManager::removeGroupRoomVerification(UserID sender,
+                                                      GroupID receiver) {
+  {
+    std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
+
+    auto iter = m_impl->m_groupVerification_map.find({sender, receiver});
+    if (iter == m_impl->m_groupVerification_map.cend()) {
+      throw std::system_error(qls_errc::verification_not_existed);
+    }
+
+    m_impl->m_groupVerification_map.erase(iter);
+  }
+  UserID adminID = serverManager.getGroupRoom(receiver)->getAdministrator();
+  serverManager.getUser(adminID)->removeGroupVerification(receiver, sender);
+  serverManager.getUser(sender)->removeGroupVerification(receiver, sender);
 }
 
 } // namespace qls

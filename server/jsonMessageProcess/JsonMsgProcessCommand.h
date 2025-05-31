@@ -1,438 +1,325 @@
 #ifndef JSON_MESSAGE_PROCESS_COMMAND_H
 #define JSON_MESSAGE_PROCESS_COMMAND_H
 
+#include <Json.h>
 #include <initializer_list>
 #include <string>
-#include <Json.h>
 
 #include "userid.hpp"
 
-namespace qls
-{
+namespace qls {
 
-class JsonMessageCommand
-{
+class JsonMessageCommand {
 public:
-    enum CommandType : int
-    {
-        NormalType = 0, // Use it if the function do not need to login.
-        LoginType = 1 // Use it if the function need to login.
-    };
+  enum CommandType : int {
+    NormalType = 0, // Use it if the function do not need to login.
+    LoginType = 1   // Use it if the function need to login.
+  };
 
-    struct JsonOption
-    {
-        std::string name;
-        qjson::JValueType jsonValueType;
-    };
+  struct JsonOption {
+    std::string name;
+    qjson::JValueType jsonValueType;
+  };
 
-    JsonMessageCommand() = default;
-    virtual ~JsonMessageCommand() = default;
+  JsonMessageCommand() = default;
+  virtual ~JsonMessageCommand() = default;
 
-    virtual const std::vector<JsonOption>& getOption() const = 0;
-    virtual int getCommandType() const = 0;
-    virtual qjson::JObject execute(UserID executor, qjson::JObject parameters) = 0;
+  virtual const std::vector<JsonOption> &getOption() const = 0;
+  virtual int getCommandType() const = 0;
+  virtual qjson::JObject execute(UserID executor,
+                                 qjson::JObject parameters) = 0;
 };
 
-class RegisterCommand: public JsonMessageCommand
-{
+class RegisterCommand : public JsonMessageCommand {
 public:
-    RegisterCommand() = default;
-    ~RegisterCommand() = default;
+  RegisterCommand() = default;
+  ~RegisterCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"email", qjson::JString},
-            {"password", qjson::JString}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"email", qjson::JString},
+                                        {"password", qjson::JString}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return NormalType;
-    }
+  int getCommandType() const { return NormalType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class HasUserCommand: public JsonMessageCommand
-{
+class HasUserCommand : public JsonMessageCommand {
 public:
-    HasUserCommand() = default;
-    ~HasUserCommand() = default;
+  HasUserCommand() = default;
+  ~HasUserCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"user_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"user_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return NormalType;
-    }
+  int getCommandType() const { return NormalType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class SearchUserCommand: public JsonMessageCommand
-{
+class SearchUserCommand : public JsonMessageCommand {
 public:
-    SearchUserCommand() = default;
-    ~SearchUserCommand() = default;
+  SearchUserCommand() = default;
+  ~SearchUserCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"user_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"user_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return NormalType;
-    }
+  int getCommandType() const { return NormalType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class AddFriendCommand: public JsonMessageCommand
-{
+class AddFriendCommand : public JsonMessageCommand {
 public:
-    AddFriendCommand() = default;
-    ~AddFriendCommand() = default;
+  AddFriendCommand() = default;
+  ~AddFriendCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"user_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"user_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class AcceptFriendVerificationCommand: public JsonMessageCommand
-{
+class AcceptFriendVerificationCommand : public JsonMessageCommand {
 public:
-    AcceptFriendVerificationCommand() = default;
-    ~AcceptFriendVerificationCommand() = default;
+  AcceptFriendVerificationCommand() = default;
+  ~AcceptFriendVerificationCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"user_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"user_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class RejectFriendVerificationCommand: public JsonMessageCommand
-{
+class RejectFriendVerificationCommand : public JsonMessageCommand {
 public:
-    RejectFriendVerificationCommand() = default;
-    ~RejectFriendVerificationCommand() = default;
-    
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"user_id", qjson::JInt}};
-        return v;
-    }
+  RejectFriendVerificationCommand() = default;
+  ~RejectFriendVerificationCommand() = default;
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"user_id", qjson::JInt}};
+    return v;
+  }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  int getCommandType() const { return LoginType; }
+
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class GetFriendListCommand: public JsonMessageCommand
-{
+class GetFriendListCommand : public JsonMessageCommand {
 public:
-    GetFriendListCommand() = default;
-    ~GetFriendListCommand() = default;
+  GetFriendListCommand() = default;
+  ~GetFriendListCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v;
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v;
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class GetFriendVerificationListCommand: public JsonMessageCommand
-{
+class GetFriendVerificationListCommand : public JsonMessageCommand {
 public:
-    GetFriendVerificationListCommand() = default;
-    ~GetFriendVerificationListCommand() = default;
+  GetFriendVerificationListCommand() = default;
+  ~GetFriendVerificationListCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v;
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v;
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class RemoveFriendCommand: public JsonMessageCommand
-{
+class RemoveFriendCommand : public JsonMessageCommand {
 public:
-    RemoveFriendCommand() = default;
-    ~RemoveFriendCommand() = default;
+  RemoveFriendCommand() = default;
+  ~RemoveFriendCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"user_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"user_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class AddGroupCommand: public JsonMessageCommand
-{
+class AddGroupCommand : public JsonMessageCommand {
 public:
-    AddGroupCommand() = default;
-    ~AddGroupCommand() = default;
+  AddGroupCommand() = default;
+  ~AddGroupCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"group_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"group_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class AcceptGroupVerificationCommand: public JsonMessageCommand
-{
+class AcceptGroupVerificationCommand : public JsonMessageCommand {
 public:
-    AcceptGroupVerificationCommand() = default;
-    ~AcceptGroupVerificationCommand() = default;
+  AcceptGroupVerificationCommand() = default;
+  ~AcceptGroupVerificationCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"group_id", qjson::JInt},
-            {"user_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"group_id", qjson::JInt},
+                                        {"user_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class RejectGroupVerificationCommand: public JsonMessageCommand
-{
+class RejectGroupVerificationCommand : public JsonMessageCommand {
 public:
-    RejectGroupVerificationCommand() = default;
-    ~RejectGroupVerificationCommand() = default;
+  RejectGroupVerificationCommand() = default;
+  ~RejectGroupVerificationCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"group_id", qjson::JInt},
-            {"user_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"group_id", qjson::JInt},
+                                        {"user_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class GetGroupListCommand: public JsonMessageCommand
-{
+class GetGroupListCommand : public JsonMessageCommand {
 public:
-    GetGroupListCommand() = default;
-    ~GetGroupListCommand() = default;
+  GetGroupListCommand() = default;
+  ~GetGroupListCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v;
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v;
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class GetGroupVerificationListCommand: public JsonMessageCommand
-{
+class GetGroupVerificationListCommand : public JsonMessageCommand {
 public:
-    GetGroupVerificationListCommand() = default;
-    ~GetGroupVerificationListCommand() = default;
+  GetGroupVerificationListCommand() = default;
+  ~GetGroupVerificationListCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v;
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v;
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class CreateGroupCommand: public JsonMessageCommand
-{
+class CreateGroupCommand : public JsonMessageCommand {
 public:
-    CreateGroupCommand() = default;
-    ~CreateGroupCommand() = default;
+  CreateGroupCommand() = default;
+  ~CreateGroupCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v;
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v;
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class RemoveGroupCommand: public JsonMessageCommand
-{
+class RemoveGroupCommand : public JsonMessageCommand {
 public:
-    RemoveGroupCommand() = default;
-    ~RemoveGroupCommand() = default;
+  RemoveGroupCommand() = default;
+  ~RemoveGroupCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"group_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"group_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class LeaveGroupCommand: public JsonMessageCommand
-{
+class LeaveGroupCommand : public JsonMessageCommand {
 public:
-    LeaveGroupCommand() = default;
-    ~LeaveGroupCommand() = default;
+  LeaveGroupCommand() = default;
+  ~LeaveGroupCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"group_id", qjson::JInt}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"group_id", qjson::JInt}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class SendFriendMessageCommand: public JsonMessageCommand
-{
+class SendFriendMessageCommand : public JsonMessageCommand {
 public:
-    SendFriendMessageCommand() = default;
-    ~SendFriendMessageCommand() = default;
+  SendFriendMessageCommand() = default;
+  ~SendFriendMessageCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"friend_id", qjson::JInt},
-            {"message", qjson::JString}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"friend_id", qjson::JInt},
+                                        {"message", qjson::JString}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
-class SendGroupMessageCommand: public JsonMessageCommand
-{
+class SendGroupMessageCommand : public JsonMessageCommand {
 public:
-    SendGroupMessageCommand() = default;
-    ~SendGroupMessageCommand() = default;
+  SendGroupMessageCommand() = default;
+  ~SendGroupMessageCommand() = default;
 
-    const std::vector<JsonOption>& getOption() const
-    {
-        static std::vector<JsonOption> v =
-            {{"group_id", qjson::JInt},
-            {"message", qjson::JString}};
-        return v;
-    }
+  const std::vector<JsonOption> &getOption() const {
+    static std::vector<JsonOption> v = {{"group_id", qjson::JInt},
+                                        {"message", qjson::JString}};
+    return v;
+  }
 
-    int getCommandType() const
-    {
-        return LoginType;
-    }
+  int getCommandType() const { return LoginType; }
 
-    qjson::JObject execute(UserID executor, qjson::JObject parameters);
+  qjson::JObject execute(UserID executor, qjson::JObject parameters);
 };
 
 } // namespace qls
-
 
 #endif // !JSON_MESSAGE_PROCESS_COMMAND_H

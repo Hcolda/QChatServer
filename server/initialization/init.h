@@ -3,21 +3,19 @@
 
 #include <Ini.h>
 
-namespace qls
-{
+namespace qls {
 
-class Init final
-{
+class Init final {
 public:
-    Init() = default;
-    ~Init() = default;
+  Init() = default;
+  ~Init() = default;
 
-    /// @brief Create config file
-    static void createConfig();
+  /// @brief Create config file
+  static void createConfig();
 
-    /// @brief Read config file
-    /// @return Ini object
-    static qini::INIObject readConfig();
+  /// @brief Read config file
+  /// @return Ini object
+  static qini::INIObject readConfig();
 };
 
 int init();
