@@ -390,20 +390,20 @@ void User::updateGroupList(
 
 void User::addFriendVerification(
     UserID friend_user_id,
-    const Verification::UserVerification& u)
+    const Verification::UserVerification& user_verification)
 {
     std::unique_lock
         lock(m_impl->m_user_friend_verification_map_mutex);
-    m_impl->m_user_friend_verification_map.emplace(friend_user_id, u);
+    m_impl->m_user_friend_verification_map.emplace(friend_user_id, user_verification);
 }
 
 void User::addGroupVerification(
     GroupID group_id,
-    const Verification::GroupVerification& u)
+    const Verification::GroupVerification& group_verification)
 {
     std::unique_lock
         lock(m_impl->m_user_group_verification_map_mutex);
-    m_impl->m_user_group_verification_map.insert({ group_id, u });
+    m_impl->m_user_group_verification_map.insert({ group_id, group_verification });
 }
 
 void User::removeFriendVerification(UserID friend_user_id)

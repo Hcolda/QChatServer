@@ -34,15 +34,15 @@ struct Verification
 
     struct UserVerification
     {
-        UserID user_id = UserID(0ll);
+        UserID user_id = UserID(0LL);
         VerificationType verification_type = Unknown;
         std::string message;
     };
 
     struct GroupVerification
     {
-        UserID user_id = UserID(0ll);
-        GroupID group_id = GroupID(0ll);
+        UserID user_id = UserID(0LL);
+        GroupID group_id = GroupID(0LL);
         VerificationType verification_type = Unknown;
         std::string message;
     };
@@ -176,7 +176,7 @@ public:
      */
     void addFriendVerification(
         UserID friend_user_id,
-        const Verification::UserVerification& u);
+        const Verification::UserVerification& user_verification);
 
     /**
      * @brief Removes a friend verification entry.
@@ -190,7 +190,8 @@ public:
      * @param group_id The ID of the group.
      * @param u Verification::UserVerification to add.
      */
-    void addGroupVerification(GroupID group_id, const Verification::GroupVerification& u);
+    void addGroupVerification(GroupID group_id,
+        const Verification::GroupVerification& group_verification);
 
     /**
      * @brief Removes a group verification entry.
