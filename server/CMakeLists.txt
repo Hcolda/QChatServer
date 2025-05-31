@@ -18,21 +18,29 @@ endif()
 
 add_executable(Server
     main/main.cpp
+
     initialization/init.cpp
+
     jsonMessageProcess/JsonMsgProcess.cpp
     jsonMessageProcess/JsonMsgProcessCommand.cpp
+
     manager/manager.cpp
     manager/dataManager.cpp
     manager/verificationManager.cpp
+
     network/network.cpp
+
     room/room.cpp
     room/groupRoom/groupRoom.cpp
-    room/groupRoom/groupRoomVerification.cpp
+    
     room/privateRoom/privateRoom.cpp
-    room/privateRoom/friendRoomVerification.cpp
-    socketFunctions/socketFunctions.cpp
-    user/user.cpp
+    
     room/groupRoom/groupPermission.cpp
+
+    socketFunctions/socketFunctions.cpp
+
+    user/user.cpp
+
     input/input.cpp
     input/inputCommands.cpp)
 
@@ -42,6 +50,7 @@ target_include_directories(Server PUBLIC
     initialization
     jsonMessageProcess
     manager
+    manager/verification
     network
     room/groupRoom
     room/privateRoom
