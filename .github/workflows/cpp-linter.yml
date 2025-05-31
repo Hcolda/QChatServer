@@ -12,6 +12,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Run vcpkg
+        uses: lukka/run-vcpkg@v11.5
+        with:
+          vcpkgGitURL: https://github.com/microsoft/vcpkg.git
+          runVcpkgInstall: true
+          vcpkgGitCommitId: 0ca64b4e1c70fa6d9f53b369b8f3f0843797c20c
+
+      - name: Initiate Git submodules
+        run: git submodule update --init
+
       - uses: cpp-linter/cpp-linter-action@v2
         id: linter
         env:
