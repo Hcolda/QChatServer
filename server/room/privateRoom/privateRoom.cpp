@@ -1,6 +1,6 @@
 #include "privateRoom.h"
 
-#include <__msvc_chrono.hpp>
+#include <chrono>
 #include <atomic>
 #include <map>
 #include <memory>
