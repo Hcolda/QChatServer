@@ -1,5 +1,6 @@
 #include "init.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -7,6 +8,7 @@
 
 #include "input.h"
 #include "manager.h"
+#include "network.h"
 #include "networkEndianness.hpp"
 
 extern Log::Logger serverLogger;
@@ -23,7 +25,7 @@ void Init::createConfig() {
 
     qini::INIObject ini;
     ini["server"]["host"] = "0.0.0.0";
-    ini["server"]["port"] = std::to_string(55555);
+    ini["server"]["port"] = std::to_string(Network::port_num);
 
     ini["mysql"]["host"] = "127.0.0.1";
     ini["mysql"]["port"] = std::to_string(3306);
@@ -37,13 +39,13 @@ void Init::createConfig() {
 
     outfile << qini::INIWriter::fastWrite(ini);
   }
-  return;
 }
 
 qini::INIObject Init::readConfig() {
   std::ifstream infile("./config/config.ini");
-  if (!infile)
+  if (!infile) {
     throw std::runtime_error("can't open file");
+  }
   return qini::INIParser::fastParse(infile);
 }
 
@@ -56,10 +58,11 @@ int init() {
 
   Network &serverNetwork = serverManager.getServerNetwork();
 
-  if (qls::isBigEndianness())
+  if (qls::isBigEndianness()) {
     serverLogger.info("The local endianness of the server is big-endian");
-  else
+  } else {
     serverLogger.info("The local endianness of the server is little-endian");
+  }
 
   try {
     serverLogger.info("Reading configuration file...");
@@ -72,24 +75,27 @@ int init() {
   }
 
   try {
-    if (std::stoll(serverIni["mysql"]["port"]) > 65535)
+    if (std::stoll(serverIni["mysql"]["port"]) > UINT16_MAX) {
       throw std::logic_error("INI configuration file section: mysql, key: "
                              "port, the port is too large!");
+    }
 
-    if (std::stoll(serverIni["mysql"]["port"]) < 0)
+    if (std::stoll(serverIni["mysql"]["port"]) < 0) {
       throw std::logic_error("INI configuration file section: mysql, key: "
                              "port, the port is too small!");
+    }
 
     // Read cert & key
     {
       {
-        std::ifstream cert(serverIni["ssl"]["certificate_file"]),
-            key(serverIni["ssl"]["key_file"]), dh(serverIni["ssl"]["dh_file"]);
+        std::ifstream cert(serverIni["ssl"]["certificate_file"]);
+        std::ifstream key(serverIni["ssl"]["key_file"]);
 
         serverIni["ssl"]["password"];
-        if (!cert || !key)
+        if (!cert || !key) {
           throw std::logic_error(
               "INI configuration file section: ssl, unable to read files!");
+        }
       }
 
       serverLogger.info("Certificate file path: ",
@@ -115,9 +121,10 @@ int init() {
             asio::ssl::context::no_tlsv1_2 | asio::ssl::context::single_dh_use);
 
         // Configure SSL context
-        if (!serverIni["ssl"]["password"].empty())
+        if (!serverIni["ssl"]["password"].empty()) {
           ssl_context->set_password_callback(
               std::bind([]() { return serverIni["ssl"]["password"]; }));
+        }
         ssl_context->use_certificate_chain_file(
             serverIni["ssl"]["certificate_file"]);
         ssl_context->use_private_key_file(serverIni["ssl"]["key_file"],
@@ -148,17 +155,19 @@ int init() {
   }
 
   try {
+    constexpr std::size_t buffer_size = 8192;
     serverLogger.info("Server command line starting...");
     std::thread([]() {
       Input input;
       input.init();
       std::string command;
-      char buffer[1024]{0};
+      char buffer[buffer_size]{0};
       while (true) {
-        std::cin.getline(buffer, 1023);
+        std::cin.getline(buffer, buffer_size - 1);
         command = buffer;
-        if (!input.input(command))
+        if (!input.input(command)) {
           break;
+        }
       }
     }).detach();
 
