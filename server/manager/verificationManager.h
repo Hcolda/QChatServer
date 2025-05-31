@@ -28,21 +28,27 @@ public:
    */
   void init();
 
-  void applyFriendRoomVerification(UserID sender, UserID receiver);
-  [[nodiscard]] bool hasFriendRoomVerification(UserID sender,
-                                               UserID receiver) const;
-  void acceptFriendVerification(UserID sender, UserID receiver);
-  void rejectFriendVerification(UserID sender, UserID receiver);
-  [[nodiscard]] bool isFriendVerified(UserID sender, UserID receiver) const;
-  void removeFriendRoomVerification(UserID sender, UserID receiver);
+  void applyFriendRoomVerification(const UserID &sender,
+                                   const UserID &receiver);
+  [[nodiscard]] bool hasFriendRoomVerification(const UserID &sender,
+                                               const UserID &receiver) const;
+  void acceptFriendVerification(const UserID &sender, const UserID &receiver);
+  void rejectFriendVerification(const UserID &sender, const UserID &receiver);
+  [[nodiscard]] bool isFriendVerified(const UserID &sender,
+                                      const UserID &receiver) const;
+  void removeFriendRoomVerification(const UserID &sender,
+                                    const UserID &receiver);
 
-  void applyGroupRoomVerification(UserID sender, GroupID receiver);
-  [[nodiscard]] bool hasGroupRoomVerification(UserID sender,
-                                              GroupID receiver) const;
-  void acceptGroupRoom(UserID sender, GroupID receiver);
-  void rejectGroupRoom(UserID sender, GroupID receiver);
-  [[nodiscard]] bool isGroupRoomVerified(UserID sender, GroupID receiver) const;
-  void removeGroupRoomVerification(UserID sender, GroupID receiver);
+  void applyGroupRoomVerification(const UserID &sender,
+                                  const GroupID &receiver);
+  [[nodiscard]] bool hasGroupRoomVerification(const UserID &sender,
+                                              const GroupID &receiver) const;
+  void acceptGroupRoom(const UserID &sender, const GroupID &receiver);
+  void rejectGroupRoom(const UserID &sender, const GroupID &receiver);
+  [[nodiscard]] bool isGroupRoomVerified(const UserID &sender,
+                                         const GroupID &receiver) const;
+  void removeGroupRoomVerification(const UserID &sender,
+                                   const GroupID &receiver);
 
 private:
   struct VerificationManagerImpl;

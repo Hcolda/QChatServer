@@ -1,6 +1,7 @@
 #ifndef USER_H
 #define USER_H
 
+#include <cstdint>
 #include <map>
 #include <memory>
 #include <string>
@@ -22,7 +23,7 @@ struct Verification {
    * @brief {Sent:     发出的申请}
    * @brief {Received: 接收的申请}
    */
-  enum VerificationType { Unknown = 0, Sent, Received };
+  enum VerificationType : std::uint8_t { Unknown = 0, Sent, Received };
 
   struct UserVerification {
     UserID user_id = UserID(0LL);
@@ -53,7 +54,7 @@ public:
    * @param user_id The ID of the user.
    * @param is_create Flag indicating if user is being created.
    */
-  User(UserID user_id, bool is_create);
+  User(const UserID &user_id, bool is_create);
 
   User(const User &) = delete; // Copy constructor deleted
   User(User &&) = delete;      // Move constructor deleted
@@ -72,16 +73,16 @@ public:
 
   // Methods to get user associated information
 
-  [[nodiscard]] bool userHasFriend(UserID friend_user_id) const;
-  [[nodiscard]] bool userHasGroup(GroupID group_id) const;
+  [[nodiscard]] bool userHasFriend(const UserID &friend_user_id) const;
+  [[nodiscard]] bool userHasGroup(const GroupID &group_id) const;
 
   [[nodiscard]] std::unordered_set<UserID> getFriendList() const;
   [[nodiscard]] std::unordered_set<GroupID> getGroupList() const;
 
-  bool addFriend(UserID friend_user_id);
-  bool acceptFriend(UserID friend_user_id);
-  bool rejectFriend(UserID friend_user_id);
-  bool removeFriend(UserID friend_user_id);
+  bool addFriend(const UserID &friend_user_id);
+  bool acceptFriend(const UserID &friend_user_id);
+  bool rejectFriend(const UserID &friend_user_id);
+  bool removeFriend(const UserID &friend_user_id);
 
   /**
    * @brief Retrieves the list of friend verification entries.
@@ -95,12 +96,12 @@ public:
    * @param group_id The ID of the group to add.
    * @return true if adding group was successful, false otherwise.
    */
-  bool addGroup(GroupID group_id);
+  bool addGroup(const GroupID &group_id);
   [[nodiscard]] GroupID createGroup();
-  bool acceptGroup(GroupID group_id, UserID user_id);
-  bool rejectGroup(GroupID group_id, UserID user_id);
-  bool removeGroup(GroupID group_id);
-  bool leaveGroup(GroupID group_id);
+  bool acceptGroup(const GroupID &group_id, const UserID &user_id);
+  bool rejectGroup(const GroupID &group_id, const UserID &user_id);
+  bool removeGroup(const GroupID &group_id);
+  bool leaveGroup(const GroupID &group_id);
 
   /**
    * @brief Retrieves the list of group verification entries.
@@ -151,10 +152,10 @@ public:
   void updateUserPassword(std::string_view old_password,
                           std::string_view new_password);
 
-  void updateFriendList(
-      std::function<void(std::unordered_set<UserID> &)> callback_function);
-  void updateGroupList(
-      std::function<void(std::unordered_set<GroupID> &)> callback_function);
+  void updateFriendList(const std::function<void(std::unordered_set<UserID> &)>
+                            &callback_function);
+  void updateGroupList(const std::function<void(std::unordered_set<GroupID> &)>
+                           &callback_function);
 
   /**
    * @brief Adds a friend verification entry.
@@ -163,14 +164,14 @@ public:
    * @param u Verification::UserVerification to add.
    */
   void addFriendVerification(
-      UserID friend_user_id,
+      const UserID &friend_user_id,
       const Verification::UserVerification &user_verification);
 
   /**
    * @brief Removes a friend verification entry.
    * @param friend_user_id The ID of the friend to remove verification for.
    */
-  void removeFriendVerification(UserID friend_user_id);
+  void removeFriendVerification(const UserID &friend_user_id);
 
   /**
    * @brief Adds a group verification entry.
@@ -179,7 +180,7 @@ public:
    * @param u Verification::UserVerification to add.
    */
   void addGroupVerification(
-      GroupID group_id,
+      const GroupID &group_id,
       const Verification::GroupVerification &group_verification);
 
   /**
@@ -187,7 +188,7 @@ public:
    * @param group_id The ID of the group to remove verification for.
    * @param user_id The ID of the user to remove verification for.
    */
-  void removeGroupVerification(GroupID group_id, UserID user_id);
+  void removeGroupVerification(const GroupID &group_id, const UserID &user_id);
 
   /**
    * @brief Adds a socket to the user's socket map.

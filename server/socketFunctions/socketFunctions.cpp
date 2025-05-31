@@ -25,10 +25,11 @@ struct SocketServiceImpl {
 };
 
 SocketService::SocketService(
-    std::shared_ptr<Connection<asio::ip::tcp::socket>> connection_ptr)
+    const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr)
     : m_impl(std::make_unique<SocketServiceImpl>(connection_ptr, UserID(-1))) {
-  if (!connection_ptr)
+  if (!connection_ptr) {
     throw std::system_error(qls::qls_errc::null_socket_pointer);
+  }
 }
 
 SocketService::~SocketService() noexcept = default;
@@ -58,7 +59,7 @@ SocketService::process(std::string_view data,
   };
 
   // Check whether the user was logged in
-  if (m_impl->m_jsonProcess.getLocalUserID() == -1ll &&
+  if (m_impl->m_jsonProcess.getLocalUserID() == -1LL &&
       pack->type != DataPackage::Text) {
     co_await async_send(makeErrorMessage("You haven't logged in!").to_string(),
                         pack->requestID, DataPackage::Text);

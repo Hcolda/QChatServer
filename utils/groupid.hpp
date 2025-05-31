@@ -7,28 +7,32 @@ namespace qls {
 
 class GroupID final {
 public:
-  constexpr GroupID() noexcept : m_group_id(0ll) {}
+  constexpr GroupID() noexcept : m_group_id(0LL) {}
   constexpr explicit GroupID(long long group_id) noexcept
       : m_group_id(group_id) {}
-  constexpr GroupID(const GroupID &u) noexcept : m_group_id(u.m_group_id) {}
-  constexpr GroupID(GroupID &&u) noexcept : m_group_id(u.m_group_id) {}
+  constexpr GroupID(const GroupID &group_id) noexcept
+      : m_group_id(group_id.m_group_id) {}
+  constexpr GroupID(GroupID &&group_id) noexcept
+      : m_group_id(group_id.m_group_id) {}
   constexpr ~GroupID() noexcept = default;
 
   [[nodiscard]] constexpr long long getOriginValue() const noexcept {
     return m_group_id;
   }
 
-  GroupID &operator=(const GroupID &u) noexcept {
-    if (&u == this)
+  GroupID &operator=(const GroupID &group_id) noexcept {
+    if (&group_id == this) {
       return *this;
-    m_group_id = u.m_group_id;
+    }
+    m_group_id = group_id.m_group_id;
     return *this;
   }
 
-  GroupID &operator=(GroupID &&u) noexcept {
-    if (&u == this)
+  GroupID &operator=(GroupID &&group_id) noexcept {
+    if (&group_id == this) {
       return *this;
-    m_group_id = u.m_group_id;
+    }
+    m_group_id = group_id.m_group_id;
     return *this;
   }
 
@@ -37,16 +41,19 @@ public:
     return *this;
   }
 
-  friend bool operator==(const GroupID &g1, const GroupID &g2) noexcept {
-    return g1.m_group_id == g2.m_group_id;
+  friend bool operator==(const GroupID &group_id1,
+                         const GroupID &group_id2) noexcept {
+    return group_id1.m_group_id == group_id2.m_group_id;
   }
 
-  friend bool operator!=(const GroupID &g1, const GroupID &g2) noexcept {
-    return g1.m_group_id != g2.m_group_id;
+  friend bool operator!=(const GroupID &group_id1,
+                         const GroupID &group_id2) noexcept {
+    return group_id1.m_group_id != group_id2.m_group_id;
   }
 
-  friend bool operator<(const GroupID &g1, const GroupID &g2) noexcept {
-    return g1.m_group_id < g2.m_group_id;
+  friend bool operator<(const GroupID &group_id1,
+                        const GroupID &group_id2) noexcept {
+    return group_id1.m_group_id < group_id2.m_group_id;
   }
 
   constexpr operator long long() const noexcept { return m_group_id; }
@@ -60,15 +67,16 @@ private:
 namespace std {
 template <> struct hash<qls::GroupID> {
 public:
-  std::size_t operator()(const qls::GroupID &g) const {
-    return hash<long long>()(g.getOriginValue());
+  std::size_t operator()(const qls::GroupID &group_id) const {
+    return hash<long long>()(group_id.getOriginValue());
   }
 };
 
 template <> struct equal_to<qls::GroupID> {
 public:
-  bool operator()(const qls::GroupID &g1, const qls::GroupID &g2) const {
-    return g1 == g2;
+  bool operator()(const qls::GroupID &group_id1,
+                  const qls::GroupID &group_id2) const {
+    return group_id1 == group_id2;
   }
 };
 } // namespace std

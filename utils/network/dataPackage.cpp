@@ -21,9 +21,9 @@ std::shared_ptr<DataPackage> DataPackage::makePackage(std::string_view data,
   void *mem = local_datapack_sync_pool.allocate(static_cast<LengthType>(lenth));
   std::memset(mem, 0, lenth);
   std::shared_ptr<DataPackage> package(
-      static_cast<DataPackage *>(mem), [lenth](DataPackage *dp) {
-        dp->~DataPackage();
-        local_datapack_sync_pool.deallocate(dp, lenth);
+      static_cast<DataPackage *>(mem), [lenth](DataPackage *data_package) {
+        data_package->~DataPackage();
+        local_datapack_sync_pool.deallocate(data_package, lenth);
       });
   package->length = static_cast<LengthType>(lenth);
   std::memcpy(package->data, data.data(), data.size());
@@ -37,27 +37,31 @@ std::shared_ptr<DataPackage> DataPackage::makePackage(std::string_view data,
 std::shared_ptr<DataPackage>
 DataPackage::stringToPackage(std::string_view data) {
   // Check if the package data is too small
-  if (data.size() < sizeof(DataPackage))
+  if (data.size() < sizeof(DataPackage)) {
     throw std::system_error(qls_errc::data_too_small);
+  }
 
   // Data package length
   LengthType size = 0;
   std::memcpy(&size, data.data(), sizeof(LengthType));
-  if (!isBigEndianness())
+  if (!isBigEndianness()) {
     size = swapEndianness(size);
+  }
 
   // Error handling if data package length does not match actual size,
   // if length is smaller than the default package size
-  if (size != data.size() || size < sizeof(DataPackage))
+  if (size != data.size() || size < sizeof(DataPackage)) {
     throw std::system_error(qls_errc::invalid_data);
+  }
 
   // Allocate memory and construct the DataPackage
   void *mem = local_datapack_sync_pool.allocate(size);
   std::memset(mem, 0, size);
   std::shared_ptr<DataPackage> package(
-      static_cast<DataPackage *>(mem), [lenth = size](DataPackage *dp) {
-        dp->~DataPackage();
-        local_datapack_sync_pool.deallocate(dp, lenth);
+      static_cast<DataPackage *>(mem),
+      [lenth = size](DataPackage *data_package) {
+        data_package->~DataPackage();
+        local_datapack_sync_pool.deallocate(data_package, lenth);
       });
   // Copy the data from string
   std::memcpy(package.get(), data.data(), size);
@@ -111,12 +115,14 @@ std::string DataPackage::getData() const {
   return {reinterpret_cast<const char *>(this->data), this->getDataSize()};
 }
 
-void DataPackage::getData(std::string &data) const {
-  data.assign(reinterpret_cast<const char *>(this->data), this->getDataSize());
+void DataPackage::getData(std::string &buffer) const {
+  buffer.assign(reinterpret_cast<const char *>(this->data),
+                this->getDataSize());
 }
 
-void DataPackage::getData(std::pmr::string &data) const {
-  data.assign(reinterpret_cast<const char *>(this->data), this->getDataSize());
+void DataPackage::getData(std::pmr::string &buffer) const {
+  buffer.assign(reinterpret_cast<const char *>(this->data),
+                this->getDataSize());
 }
 
 } // namespace qls

@@ -2,6 +2,7 @@
 #define ROOM_H
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <memory_resource>
 #include <string_view>
@@ -11,13 +12,13 @@
 
 namespace qls {
 
-enum class MessageType { NOMAL_MESSAGE = 0, TIP_MESSAGE };
+enum class MessageType : std::uint8_t { NOMAL_MESSAGE = 0, TIP_MESSAGE };
 
 struct MessageStructure {
-  UserID sender = UserID(-1ll);
+  UserID sender = UserID(-1LL);
   std::string message;
   MessageType type;
-  UserID receiver = UserID(-1ll);
+  UserID receiver = UserID(-1LL);
 };
 
 struct MessageResult {
@@ -40,12 +41,12 @@ public:
 struct TCPRoomImpl;
 struct TCPRoomImplDeleter {
   std::pmr::memory_resource *memory_resource;
-  void operator()(TCPRoomImpl *) noexcept;
+  void operator()(TCPRoomImpl *) const noexcept;
 };
 
 class TCPRoom : public RoomInterface {
 public:
-  TCPRoom(std::pmr::memory_resource *mr);
+  TCPRoom(std::pmr::memory_resource *res);
   TCPRoom(const TCPRoom &) = delete;
   TCPRoom(TCPRoom &&) = delete;
   virtual ~TCPRoom() noexcept;
@@ -67,12 +68,12 @@ private:
 struct KCPRoomImpl;
 struct KCPRoomImplDeleter {
   std::pmr::memory_resource *memory_resource;
-  void operator()(KCPRoomImpl *) noexcept;
+  void operator()(KCPRoomImpl *) const noexcept;
 };
 
 class KCPRoom : public RoomInterface {
 public:
-  KCPRoom(std::pmr::memory_resource *mr);
+  KCPRoom(std::pmr::memory_resource *res);
   KCPRoom(const KCPRoom &) = delete;
   KCPRoom(KCPRoom &&) = delete;
   virtual ~KCPRoom() noexcept;
@@ -99,7 +100,7 @@ private:
 
 class TextDataRoom : public TCPRoom {
 public:
-  TextDataRoom(std::pmr::memory_resource *mr) : TCPRoom(mr) {}
+  TextDataRoom(std::pmr::memory_resource *res) : TCPRoom(res) {}
   virtual ~TextDataRoom() noexcept = default;
 
 protected:

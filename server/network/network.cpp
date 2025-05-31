@@ -5,6 +5,7 @@
 #include <asio/experimental/awaitable_operators.hpp>
 #include <asio/ip/tcp.hpp>
 #include <chrono>
+#include <cstdint>
 #include <logger.hpp>
 #include <string>
 #include <system_error>
@@ -35,10 +36,10 @@ using namespace experimental::awaitable_operators;
 using namespace std::chrono_literals;
 
 Network::Network()
-    : m_port(55555),
+    : m_port(port_num),
       m_thread_num(
-          (12 > static_cast<int>(std::thread::hardware_concurrency())
-               ? 12
+          (thread_num > static_cast<int>(std::thread::hardware_concurrency())
+               ? thread_num
                : static_cast<int>(std::thread::hardware_concurrency()))) {
   m_threads =
       std::make_unique<std::thread[]>(static_cast<std::size_t>(m_thread_num));
@@ -46,27 +47,31 @@ Network::Network()
 
 Network::~Network() {
   for (int i = 0; i < m_thread_num; i++) {
-    if (m_threads[i].joinable())
+    if (m_threads[i].joinable()) {
       m_threads[i].join();
+    }
   }
 }
 
 void Network::setTlsConfig(
-    std::function<std::shared_ptr<ssl::context>()> callback_handle) {
-  if (!callback_handle)
+    const std::function<std::shared_ptr<ssl::context>()> &callback_handle) {
+  if (!callback_handle) {
     throw std::system_error(qls_errc::null_tls_callback_handle);
+  }
   m_ssl_context_ptr = callback_handle();
-  if (!m_ssl_context_ptr)
+  if (!m_ssl_context_ptr) {
     throw std::system_error(qls_errc::null_tls_context);
+  }
 }
 
-void Network::run(std::string_view host, unsigned short port) {
+void Network::run(std::string_view host, std::uint16_t port) {
   m_host = host;
   m_port = port;
 
   // Check if SSL context ptr is null
-  if (!m_ssl_context_ptr)
+  if (!m_ssl_context_ptr) {
     throw std::system_error(qls_errc::null_tls_context);
+  }
 
   try {
     signal_set signals(m_io_context, SIGINT, SIGTERM);
@@ -78,8 +83,9 @@ void Network::run(std::string_view host, unsigned short port) {
       m_threads[i] = std::thread([&]() { m_io_context.run(); });
     }
     for (int i = 0; i < m_thread_num; i++) {
-      if (m_threads[i].joinable())
+      if (m_threads[i].joinable()) {
         m_threads[i].join();
+      }
     }
   } catch (const std::exception &e) {
     serverLogger.error(ERROR_WITH_STACKTRACE(e.what()));
@@ -92,14 +98,14 @@ asio::io_context &Network::get_io_context() noexcept {
 
 void Network::stop() { m_io_context.stop(); }
 
-awaitable<void> Network::echo(ip::tcp::socket origin_socket) {
+awaitable<void> Network::process(ip::tcp::socket origin_socket) {
   auto executor = co_await this_coro::executor;
 
   // Check socket
   if (!m_rateLimiter.allow_connection(
           origin_socket.remote_endpoint().address())) {
-    std::error_code ec;
-    ec = origin_socket.close(ec);
+    std::error_code errorc;
+    errorc = origin_socket.close(errorc);
     co_return;
   }
 
@@ -119,21 +125,12 @@ awaitable<void> Network::echo(ip::tcp::socket origin_socket) {
   try {
     serverLogger.info(std::format("[{}] connected to the server", addr));
 
-    // timeout function
-    auto timeout =
-        [](const std::chrono::nanoseconds &duration) -> awaitable<void> {
-      steady_timer timer(co_await this_coro::executor);
-      timer.expires_after(duration);
-      co_await timer.async_wait(asio::use_awaitable);
-      throw std::system_error(make_error_code(std::errc::timed_out));
-    };
-
     // SSL handshake
     co_await (connection_ptr->socket.async_handshake(ssl::stream_base::server,
                                                      use_awaitable) ||
-              timeout(10s));
+              timeout(timeout_num));
 
-    char data[8192]{0};
+    char data[buffer_lenth] = {0};
     SocketService socketService(connection_ptr);
     long long heart_beat_times = 0;
     auto heart_beat_time_point = std::chrono::steady_clock::now();
@@ -141,14 +138,14 @@ awaitable<void> Network::echo(ip::tcp::socket origin_socket) {
     while (true) {
       try {
         do {
-          std::size_t n = std::get<0>(
+          std::size_t size = std::get<0>(
               co_await (connection_ptr->socket.async_read_some(
                             buffer(data), bind_executor(connection_ptr->strand,
                                                         use_awaitable)) ||
-                        timeout(60s)));
+                        timeout(timeout_num)));
           // serverLogger.info((std::format("[{}] received message: {}", addr,
-          // showBinaryData({data, n}))));
-          packageReceiver.write({data, n});
+          // showBinaryData({data, size}))));
+          packageReceiver.write({data, size});
         } while (!packageReceiver.canRead());
 
         packageReceiver.read(data_buffer);
@@ -157,10 +154,10 @@ awaitable<void> Network::echo(ip::tcp::socket origin_socket) {
           // Heartbeat package
           heart_beat_times++;
           if ((std::chrono::steady_clock::now() - heart_beat_time_point) >=
-              std::chrono::seconds(10)) {
+              heart_beat_check_interval) {
             // Update time point
             heart_beat_time_point = std::chrono::steady_clock::now();
-            if (heart_beat_times > 10) {
+            if (heart_beat_times > max_heart_beat_num) {
               // Remove socket pointer from manager
               // if there were too many heartbeats
               serverLogger.error("[", addr, "]", "too many heartbeats");
@@ -176,11 +173,12 @@ awaitable<void> Network::echo(ip::tcp::socket origin_socket) {
         continue;
       } catch (const std::system_error &e) {
         const auto &errc = e.code();
-        if (errc.message() == "End of file")
+        if (errc.message() == "End of file") {
           serverLogger.info(
               std::format("[{}] disconnected from the server", addr));
-        else
+        } else {
           serverLogger.error('[', errc.category().name(), ']', errc.message());
+        }
       } catch (const std::exception &e) {
         serverLogger.error(std::string(e.what()));
       }
@@ -191,10 +189,11 @@ awaitable<void> Network::echo(ip::tcp::socket origin_socket) {
     }
   } catch (const std::system_error &e) {
     const auto &errc = e.code();
-    if (errc.message() == "End of file")
+    if (errc.message() == "End of file") {
       serverLogger.info(std::format("[{}] disconnected from the server", addr));
-    else
+    } else {
       serverLogger.error('[', errc.category().name(), ']', errc.message());
+    }
   } catch (const asio::multiple_exceptions &e) {
     serverLogger.error(std::string(e.what()));
   } catch (const std::exception &e) {
@@ -225,7 +224,7 @@ awaitable<void> Network::listener() {
   while (true) {
     try {
       tcp::socket socket = co_await acceptor.async_accept(use_awaitable);
-      co_spawn(executor, echo(std::move(socket)), detached);
+      co_spawn(executor, process(std::move(socket)), detached);
     } catch (const std::exception &e) {
       serverLogger.warning("Error occured at Asio.accepter: ",
                            std::string(e.what()));
@@ -233,26 +232,33 @@ awaitable<void> Network::listener() {
   }
 }
 
+awaitable<void> Network::timeout(const std::chrono::nanoseconds &duration) {
+  steady_timer timer(co_await this_coro::executor);
+  timer.expires_after(duration);
+  co_await timer.async_wait(asio::use_awaitable);
+  throw std::system_error(make_error_code(std::errc::timed_out));
+}
+
 inline std::string socket2ip(const Socket &s) {
-  auto ep = s.lowest_layer().remote_endpoint();
-  return std::format("{}:{}", ep.address().to_string(),
-                     static_cast<unsigned int>(ep.port()));
+  auto endpoint = s.lowest_layer().remote_endpoint();
+  return std::format("{}:{}", endpoint.address().to_string(),
+                     static_cast<std::uint32_t>(endpoint.port()));
 }
 
 inline std::string showBinaryData(std::string_view data) {
-  auto isShowableCharacter = [](unsigned char ch) -> bool {
-    return 32 <= ch && ch <= 126;
+  auto isShowableCharacter = [](unsigned char chr) -> bool {
+    return 32 <= chr && chr <= 126;
   };
 
   std::string result;
-  for (const auto &i : data) {
-    if (isShowableCharacter(static_cast<unsigned char>(i)))
-      result += i;
-    else {
+  for (const auto &iter : data) {
+    if (isShowableCharacter(static_cast<unsigned char>(iter))) {
+      result += iter;
+    } else {
       std::string hex;
-      int locch = static_cast<unsigned char>(i);
+      std::uint32_t locch = static_cast<unsigned char>(iter);
       while (locch) {
-        int result = locch & 0xF;
+        uint32_t result = locch & 0xF;
         if (result < 10) {
           hex += ('0' + (result));
           locch >>= 4;
@@ -277,16 +283,19 @@ inline std::string showBinaryData(std::string_view data) {
         case 15:
           hex += 'f';
           break;
+        default:
+          break;
         }
         locch >>= 4;
       }
 
-      if (hex.empty())
+      if (hex.empty()) {
         result += "\\x00";
-      else if (hex.size() == 1)
+      } else if (hex.size() == 1) {
         result += "\\x0" + hex;
-      else
+      } else {
         result += "\\x" + hex;
+      }
     }
   }
 

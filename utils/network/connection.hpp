@@ -16,13 +16,13 @@ template <class T> struct Connection {
   asio::strand<asio::any_io_executor> strand;
 
   template <class U>
-  Connection(U &&s, asio::ssl::context &context)
-      : socket(std::forward<U>(s), context),
-        strand(asio::make_strand(s.get_executor())) {}
+  Connection(U &&socket, asio::ssl::context &context)
+      : socket(std::forward<U>(socket), context),
+        strand(asio::make_strand(socket.get_executor())) {}
 
   ~Connection() noexcept {
-    std::error_code ec;
-    ec = socket.shutdown(ec);
+    std::error_code errorc;
+    errorc = socket.shutdown(errorc);
   }
 };
 

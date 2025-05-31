@@ -16,11 +16,12 @@ using namespace qls;
 template <std::size_t N, std::size_t N2>
 constexpr static void getTargetName(const char (&data)[N], char (&out)[N2]) {
   std::size_t size = std::strlen(data);
-  for (auto i = 0ull; i < size; ++i) {
-    if (data[i] == '_')
+  for (std::size_t i = 0; i < size; ++i) {
+    if (data[i] == '_') {
       out[i] = ' ';
-    else
+    } else {
       out[i] = data[i];
+    }
   }
 }
 
@@ -45,14 +46,17 @@ public:
   bool input(std::string_view command) {
     std::string first_word;
     std::string_view::const_iterator iter = command.cbegin();
-    while (iter != command.cend() && *iter == ' ')
+    while (iter != command.cend() && *iter == ' ') {
       ++iter;
-    while (iter != command.cend() && *iter != '-')
+    }
+    while (iter != command.cend() && *iter != '-') {
       first_word += *(iter++);
+    }
 
     first_word = strip(first_word);
-    if (first_word.empty())
+    if (first_word.empty()) {
       return true;
+    }
     std::string arguments(iter, command.cend());
 
     if (auto words = split(first_word); words[0] == "help") {
@@ -78,8 +82,9 @@ public:
                             i->second->registerCommand().description);
         }
       }
-      if (!has_find)
+      if (!has_find) {
         serverLogger.warning("Command not existed: ", origin_command);
+      }
       return true;
     }
 
@@ -110,13 +115,16 @@ private:
     std::string_view::const_iterator first = data.cbegin();
     auto last = data.crbegin();
 
-    while (first != data.cend() && *first == ' ')
+    while (first != data.cend() && *first == ' ') {
       ++first;
-    while (last != data.crend() && *last == ' ')
+    }
+    while (last != data.crend() && *last == ' ') {
       ++last;
+    }
 
-    if (first >= last.base())
+    if (first >= last.base()) {
       return {};
+    }
     return {first, last.base()};
   }
 
@@ -124,16 +132,18 @@ private:
     std::vector<std::string> dataList;
 
     long long begin = -1;
-    long long i = 0;
+    long long iter = 0;
 
-    for (; static_cast<std::size_t>(i) < data.size(); i++) {
-      if (data[i] == ' ') {
-        if ((i - begin - 1) > 0)
-          dataList.emplace_back(data.begin() + (begin + 1), data.begin() + i);
-        begin = i;
+    for (; static_cast<std::size_t>(iter) < data.size(); iter++) {
+      if (data[iter] == ' ') {
+        if ((iter - begin - 1) > 0) {
+          dataList.emplace_back(data.begin() + (begin + 1),
+                                data.begin() + iter);
+        }
+        begin = iter;
       }
     }
-    dataList.emplace_back(data.begin() + (begin + 1), data.begin() + i);
+    dataList.emplace_back(data.begin() + (begin + 1), data.begin() + iter);
 
     return dataList;
   }

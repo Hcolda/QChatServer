@@ -1,6 +1,7 @@
 #ifndef GROUP_PERMISSION_H
 #define GROUP_PERMISSION_H
 
+#include <cstdint>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
@@ -14,7 +15,7 @@ namespace qls {
 /**
  * @brief Enum defining different types of permissions.
  */
-enum class PermissionType {
+enum class PermissionType : std::int8_t {
   Default = 0,  ///< Default permission level
   Operator,     ///< Operator permission level
   Administrator ///< Administrator permission level
@@ -64,14 +65,14 @@ public:
    * @param user_id ID of the user.
    * @param type New permission type.
    */
-  void modifyUserPermission(UserID user_id,
+  void modifyUserPermission(const UserID &user_id,
                             PermissionType type = PermissionType::Default);
 
   /**
    * @brief Removes a user from the user permission list.
    * @param user_id ID of the user to remove.
    */
-  void removeUser(UserID user_id);
+  void removeUser(const UserID &user_id);
 
   /**
    * @brief Checks if a user has a specific permission.
@@ -79,7 +80,7 @@ public:
    * @param permissionName Name of the permission.
    * @return true if user has the permission, false otherwise.
    */
-  [[nodiscard]] bool userHasPermission(UserID user_id,
+  [[nodiscard]] bool userHasPermission(const UserID &user_id,
                                        std::string_view permissionName) const;
 
   /**
@@ -87,7 +88,8 @@ public:
    * @param user_id ID of the user.
    * @return PermissionType Type of permission for the user.
    */
-  [[nodiscard]] PermissionType getUserPermissionType(UserID user_id) const;
+  [[nodiscard]] PermissionType
+  getUserPermissionType(const UserID &user_id) const;
 
   /**
    * @brief Retrieves the entire user permission list.

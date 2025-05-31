@@ -1,5 +1,6 @@
 #include "privateRoom.h"
 
+#include <__msvc_chrono.hpp>
 #include <atomic>
 #include <map>
 #include <memory>
@@ -37,17 +38,19 @@ void PrivateRoomImplDeleter::operator()(PrivateRoomImpl *pri) noexcept {
 }
 
 // PrivateRoom
-PrivateRoom::PrivateRoom(UserID user_id_1, UserID user_id_2, bool is_create)
+PrivateRoom::PrivateRoom(const UserID &user_id_1, const UserID &user_id_2,
+                         bool is_create)
     : TextDataRoom(&local_sync_private_room_pool),
       m_impl(std::pmr::polymorphic_allocator<>(&local_sync_private_room_pool)
                  .new_object<PrivateRoomImpl>(user_id_1, user_id_2)) {
-  if (is_create) {
-    // sql 创建private room
-    m_impl->m_can_be_used = true;
-  } else {
-    // sql 读取private room
-    m_impl->m_can_be_used = true;
-  }
+  // if (is_create) {
+  //   // sql 创建private room
+  //   m_impl->m_can_be_used = true;
+  // } else {
+  //   // sql 读取private room
+  //   m_impl->m_can_be_used = true;
+  // }
+  m_impl->m_can_be_used = true;
 
   TextDataRoom::joinRoom(user_id_1);
   TextDataRoom::joinRoom(user_id_2);
@@ -57,12 +60,15 @@ PrivateRoom::PrivateRoom(UserID user_id_1, UserID user_id_2, bool is_create)
 
 PrivateRoom::~PrivateRoom() noexcept { stop_cleaning(); }
 
-void PrivateRoom::sendMessage(std::string_view message, UserID sender_user_id) {
-  if (!m_impl->m_can_be_used)
+void PrivateRoom::sendMessage(std::string_view message,
+                              const UserID &sender_user_id) {
+  if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::private_room_unable_to_use));
-  if (!hasUser(sender_user_id))
+  }
+  if (!hasUser(sender_user_id)) {
     return;
+  }
 
   // 存储数据
   {
@@ -81,12 +87,14 @@ void PrivateRoom::sendMessage(std::string_view message, UserID sender_user_id) {
 }
 
 void PrivateRoom::sendTipMessage(std::string_view message,
-                                 UserID sender_user_id) {
-  if (!m_impl->m_can_be_used)
+                                 const UserID &sender_user_id) {
+  if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::private_room_unable_to_use));
-  if (!hasUser(sender_user_id))
+  }
+  if (!hasUser(sender_user_id)) {
     return;
+  }
 
   // 存储数据
   {
@@ -107,16 +115,19 @@ void PrivateRoom::sendTipMessage(std::string_view message,
 std::vector<MessageResult>
 PrivateRoom::getMessage(const std::chrono::utc_clock::time_point &from,
                         const std::chrono::utc_clock::time_point &to) {
-  if (!m_impl->m_can_be_used)
+  if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::group_room_unable_to_use));
-  if (from > to)
+  }
+  if (from > to) {
     return {};
+  }
 
   std::shared_lock lock(m_impl->m_message_map_mutex);
   const auto &message_map = std::as_const(m_impl->m_message_map);
-  if (message_map.empty())
+  if (message_map.empty()) {
     return {};
+  }
   auto start = message_map.lower_bound(from);
   auto end = message_map.upper_bound(to);
   std::vector<MessageResult> revec;
@@ -127,16 +138,18 @@ PrivateRoom::getMessage(const std::chrono::utc_clock::time_point &from,
 }
 
 std::pair<UserID, UserID> PrivateRoom::getUserID() const {
-  if (!m_impl->m_can_be_used)
+  if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::private_room_unable_to_use));
+  }
   return {m_impl->m_user_id_1, m_impl->m_user_id_2};
 }
 
-bool PrivateRoom::hasMember(UserID user_id) const {
-  if (!m_impl->m_can_be_used)
+bool PrivateRoom::hasMember(const UserID &user_id) const {
+  if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::private_room_unable_to_use));
+  }
   return user_id == m_impl->m_user_id_1 || user_id == m_impl->m_user_id_2;
 }
 
@@ -160,7 +173,7 @@ asio::awaitable<void> PrivateRoom::auto_clean() {
       co_await m_impl->m_clear_timer.async_wait(asio::use_awaitable);
       std::unique_lock lock(m_impl->m_message_map_mutex);
       auto end = m_impl->m_message_map.upper_bound(
-          std::chrono::utc_clock::now() - std::chrono::days(7));
+          std::chrono::utc_clock::now() - std::chrono::weeks(1));
       m_impl->m_message_map.erase(m_impl->m_message_map.begin(), end);
     }
   } catch (...) {
@@ -169,8 +182,8 @@ asio::awaitable<void> PrivateRoom::auto_clean() {
 }
 
 void PrivateRoom::stop_cleaning() {
-  std::error_code ec;
-  m_impl->m_clear_timer.cancel(ec);
+  std::error_code errorc;
+  m_impl->m_clear_timer.cancel(errorc);
 }
 
 } // namespace qls

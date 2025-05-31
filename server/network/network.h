@@ -3,6 +3,8 @@
 
 #include <asio.hpp>
 #include <asio/ssl.hpp>
+#include <chrono>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <memory_resource>
@@ -40,19 +42,27 @@ public:
   Network(Network &&) = delete;
   ~Network();
 
+  constexpr static std::uint8_t thread_num = 12;
+  constexpr static std::uint16_t port_num = 55555;
+  constexpr static std::chrono::seconds timeout_num = std::chrono::seconds(60);
+  constexpr static std::chrono::seconds heart_beat_check_interval =
+      std::chrono::seconds(10);
+  constexpr static std::uint32_t max_heart_beat_num = 10;
+  constexpr static std::uint32_t buffer_lenth = 8192;
+
   /**
    * @brief Sets the TLS configuration.
    * @param callback_handle A callback function to configure TLS.
    */
-  void setTlsConfig(
-      std::function<std::shared_ptr<asio::ssl::context>()> callback_handle);
+  void setTlsConfig(const std::function<std::shared_ptr<asio::ssl::context>()>
+                        &callback_handle);
 
   /**
    * @brief Runs the network.
    * @param host The host address.
    * @param port The port number.
    */
-  void run(std::string_view host, unsigned short port);
+  void run(std::string_view host, std::uint16_t port);
 
   /**
    * @brief Stops the network operations.
@@ -65,18 +75,10 @@ public:
   [[nodiscard]] asio::io_context &get_io_context() noexcept;
 
 private:
-  /**
-   * @brief Handles echo functionality for a socket.
-   * @param socket The socket.
-   * @return An awaitable task.
-   */
-  asio::awaitable<void> echo(asio::ip::tcp::socket socket);
-
-  /**
-   * @brief Listens for incoming connections.
-   * @return An awaitable task.
-   */
+  asio::awaitable<void> process(asio::ip::tcp::socket socket);
   asio::awaitable<void> listener();
+  static asio::awaitable<void>
+  timeout(const std::chrono::nanoseconds &duration);
 
   std::string m_host;    ///< Host address.
   unsigned short m_port; ///< Port number.

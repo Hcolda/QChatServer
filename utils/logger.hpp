@@ -4,6 +4,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstdint>
 #include <filesystem>
 #include <fstream>
 #include <functional>
@@ -21,11 +22,11 @@
 namespace Log {
 
 template <typename T>
-concept StreamType = requires(T t) { std::cout << t; };
+concept StreamType = requires(T data) { std::cout << data; };
 
 class Logger {
 public:
-  enum class LogMode {
+  enum class LogMode : std::uint8_t {
     LogINFO = 0,
     LogWARNING,
     LogERROR,
@@ -40,8 +41,9 @@ public:
    */
   Logger()
       : m_isRunning(true), m_thread(std::bind(&Logger::workFunction, this)) {
-    if (!openFile())
+    if (!openFile()) {
       throw std::runtime_error("Could not open the log file.");
+    }
   }
 
   /**
@@ -132,8 +134,9 @@ public:
   void join() {
     m_isRunning = false;
     m_cv.notify_all();
-    if (m_thread.joinable())
+    if (m_thread.joinable()) {
       m_thread.join();
+    }
   }
 
 protected:
@@ -147,20 +150,21 @@ protected:
     LogMode mode;
     std::tuple<Args...> tuple;
 
-    PrintTask(Logger *l, LogMode m, std::tuple<Args...> t)
-        : this_logger(l), mode(m), tuple(std::move(t)) {}
+    PrintTask(Logger *logger, LogMode mode, std::tuple<Args...> time_point)
+        : this_logger(logger), mode(mode), tuple(std::move(time_point)) {}
 
     virtual ~PrintTask() noexcept = default;
 
     template <typename Tuple, size_t... Is>
-    static inline void printTupleImpl(const Tuple &t,
-                                      std::index_sequence<Is...>) {
-      ((std::cout << std::get<Is>(t)), ...);
+    static void printTupleImpl(const Tuple &time_point,
+                               std::index_sequence<Is...> index) {
+      ((std::cout << std::get<Is>(time_point)), ...);
     }
 
     template <typename Tuple, size_t... Is>
-    inline void writeTupleImpl(const Tuple &t, std::index_sequence<Is...>) {
-      ((this_logger->m_file << std::get<Is>(t)), ...);
+    void writeTupleImpl(const Tuple &time_point,
+                        std::index_sequence<Is...> index) {
+      ((this_logger->m_file << std::get<Is>(time_point)), ...);
     }
 
     virtual void operator()() override {
@@ -199,7 +203,7 @@ protected:
     Logger *this_logger;
     std::size_t size;
 
-    void operator()(BasePrintTask *ptr) {
+    void operator()(BasePrintTask *ptr) const {
       ptr->~BasePrintTask();
       this_logger->m_memory_resouce.deallocate(ptr, size);
     }
@@ -210,18 +214,20 @@ protected:
    * @return Formatted log file name.
    */
   static std::string generateFileName() {
-    auto t =
+    auto time_point =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::stringstream ss;
+    std::stringstream string_stream;
 #ifdef _MSC_VER
     std::tm local_tm = {};
-    if (::localtime_s(&local_tm, &t))
+    if (::localtime_s(&local_tm, &time_point)) {
       throw std::runtime_error("Could not get the ctime tm.");
-    ss << std::put_time(&local_tm, "%Y-%m-%d.log");
+    }
+    string_stream << std::put_time(&local_tm, "%Y-%mode-%d.log");
 #else
-    ss << std::put_time(std::localtime(&t), "%Y-%m-%d.log");
+    string_stream << std::put_time(std::localtime(&time_point),
+                                   "%Y-%mode-%d.log");
 #endif
-    return ss.str();
+    return string_stream.str();
   }
 
   /**
@@ -229,23 +235,24 @@ protected:
    * @return Formatted timestamp string.
    */
   static std::string generateTimeFormatString() {
-    auto t =
+    auto time_point =
         std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    std::stringstream ss;
+    std::stringstream string_stream;
 #ifdef _MSC_VER
     std::tm local_tm = {};
-    if (::localtime_s(&local_tm, &t))
+    if (::localtime_s(&local_tm, &time_point)) {
       throw std::runtime_error("Could not get the ctime tm.");
-    ss << std::put_time(&local_tm, "[%H:%M:%S]");
+    }
+    string_stream << std::put_time(&local_tm, "[%H:%M:%S]");
 #else
-    ss << std::put_time(std::localtime(&t), "[%H:%M:%S]");
+    string_stream << std::put_time(std::localtime(&time_point), "[%H:%M:%S]");
 #endif
-    return ss.str();
+    return string_stream.str();
   }
 
   /**
    * @brief Opens the log file for writing.
-   * Creates the log directory if it doesn't exist.
+   * Creates the log directory if it doesn'time_point exist.
    * @return True if file opened successfully, false otherwise.
    */
   bool openFile() {
@@ -262,10 +269,12 @@ protected:
     while (true) {
       std::unique_lock lock(m_mutex);
       m_cv.wait(lock, [&]() { return !m_msgQueue.empty() || !m_isRunning; });
-      if (!m_isRunning && m_msgQueue.empty())
+      if (!m_isRunning && m_msgQueue.empty()) {
         return;
-      else if (m_msgQueue.empty())
+      }
+      if (m_msgQueue.empty()) {
         continue;
+      }
       auto task = std::move(m_msgQueue.front());
       m_msgQueue.pop();
       std::invoke(*task);

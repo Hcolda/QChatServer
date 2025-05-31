@@ -37,10 +37,10 @@ template <typename T>
 template <typename T>
   requires std::integral<T>
 [[nodiscard]] inline T swapNetworkEndianness(T value) {
-  if (!isBigEndianness())
+  if (!isBigEndianness()) {
     return swapEndianness(value);
-  else
-    return value;
+  }
+  return value;
 }
 
 } // namespace qls

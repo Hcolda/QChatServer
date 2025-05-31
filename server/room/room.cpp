@@ -23,27 +23,29 @@ namespace qls {
  */
 
 struct TCPRoomImpl {
-  TCPRoomImpl(std::pmr::memory_resource *mr) : m_user_map(mr) {}
+  TCPRoomImpl(std::pmr::memory_resource *res) : m_user_map(res) {}
 
   std::pmr::unordered_map<UserID, std::weak_ptr<User>> m_user_map;
   mutable std::shared_mutex m_user_map_mutex;
 };
 
-void TCPRoomImplDeleter::operator()(TCPRoomImpl *mem_pointer) noexcept {
+void TCPRoomImplDeleter::operator()(TCPRoomImpl *mem_pointer) const noexcept {
   std::pmr::polymorphic_allocator<TCPRoomImpl>(memory_resource)
       .delete_object(mem_pointer);
 }
 
-TCPRoom::TCPRoom(std::pmr::memory_resource *mr)
+TCPRoom::TCPRoom(std::pmr::memory_resource *res)
     : m_impl(
-          std::pmr::polymorphic_allocator<>(mr).new_object<TCPRoomImpl>(mr)) {}
+          std::pmr::polymorphic_allocator<>(res).new_object<TCPRoomImpl>(res)) {
+}
 
 TCPRoom::~TCPRoom() noexcept = default;
 
 void TCPRoom::joinRoom(UserID user_id) {
   std::unique_lock lock(m_impl->m_user_map_mutex);
-  if (m_impl->m_user_map.find(user_id) != m_impl->m_user_map.cend())
+  if (m_impl->m_user_map.find(user_id) != m_impl->m_user_map.cend()) {
     return;
+  }
 
   m_impl->m_user_map.emplace(user_id, serverManager.getUser(user_id));
 }
@@ -56,8 +58,9 @@ bool TCPRoom::hasUser(UserID user_id) const {
 void TCPRoom::leaveRoom(UserID user_id) {
   std::unique_lock lock(m_impl->m_user_map_mutex);
   auto iter = m_impl->m_user_map.find(user_id);
-  if (iter == m_impl->m_user_map.cend())
+  if (iter == m_impl->m_user_map.cend()) {
     return;
+  }
 
   m_impl->m_user_map.erase(iter);
 }
@@ -66,15 +69,17 @@ void TCPRoom::sendData(std::string_view data) {
   std::shared_lock lock(m_impl->m_user_map_mutex);
 
   for (const auto &[user_id, user_ptr] : std::as_const(m_impl->m_user_map)) {
-    if (!user_ptr.expired())
+    if (!user_ptr.expired()) {
       user_ptr.lock()->notifyAll(data);
+    }
   }
 }
 
 void TCPRoom::sendData(std::string_view data, UserID user_id) {
   std::shared_lock lock(m_impl->m_user_map_mutex);
-  if (m_impl->m_user_map.find(user_id) == m_impl->m_user_map.cend())
+  if (m_impl->m_user_map.find(user_id) == m_impl->m_user_map.cend()) {
     throw std::logic_error("User id not in room.");
+  }
   serverManager.getUser(user_id)->notifyAll(data);
 }
 
@@ -85,8 +90,8 @@ void TCPRoom::sendData(std::string_view data, UserID user_id) {
  */
 
 struct KCPRoomImpl {
-  KCPRoomImpl(std::pmr::memory_resource *mr)
-      : m_user_map(mr), m_socket_map(mr) {}
+  KCPRoomImpl(std::pmr::memory_resource *res)
+      : m_user_map(res), m_socket_map(res) {}
 
   std::pmr::unordered_map<UserID, std::weak_ptr<User>> m_user_map;
   mutable std::shared_mutex m_user_map_mutex;
@@ -95,11 +100,12 @@ struct KCPRoomImpl {
   mutable std::shared_mutex m_socket_map_mutex;
 };
 
-KCPRoom::KCPRoom(std::pmr::memory_resource *mr)
+KCPRoom::KCPRoom(std::pmr::memory_resource *res)
     : m_impl(
-          std::pmr::polymorphic_allocator<>(mr).new_object<KCPRoomImpl>(mr)) {}
+          std::pmr::polymorphic_allocator<>(res).new_object<KCPRoomImpl>(res)) {
+}
 
-void KCPRoomImplDeleter::operator()(KCPRoomImpl *mem_pointer) noexcept {
+void KCPRoomImplDeleter::operator()(KCPRoomImpl *mem_pointer) const noexcept {
   std::pmr::polymorphic_allocator<KCPRoomImpl>(memory_resource)
       .delete_object(mem_pointer);
 }
@@ -108,8 +114,9 @@ KCPRoom::~KCPRoom() noexcept = default;
 
 void KCPRoom::joinRoom(UserID user_id) {
   std::unique_lock lock(m_impl->m_user_map_mutex);
-  if (m_impl->m_user_map.find(user_id) != m_impl->m_user_map.cend())
+  if (m_impl->m_user_map.find(user_id) != m_impl->m_user_map.cend()) {
     return;
+  }
 
   m_impl->m_user_map.emplace(user_id, serverManager.getUser(user_id));
 }
@@ -122,8 +129,9 @@ bool KCPRoom::hasUser(UserID user_id) const {
 void KCPRoom::leaveRoom(UserID user_id) {
   std::unique_lock lock(m_impl->m_user_map_mutex);
   auto iter = m_impl->m_user_map.find(user_id);
-  if (iter == m_impl->m_user_map.cend())
+  if (iter == m_impl->m_user_map.cend()) {
     return;
+  }
 
   m_impl->m_user_map.erase(iter);
 }
@@ -141,8 +149,9 @@ bool KCPRoom::hasSocket(const std::shared_ptr<KCPSocket> &socket) const {
 void KCPRoom::removeSocket(const std::shared_ptr<KCPSocket> &socket) {
   std::lock_guard<std::shared_mutex> lock(m_impl->m_socket_map_mutex);
   auto iter = m_impl->m_socket_map.find(socket);
-  if (iter != m_impl->m_socket_map.end())
+  if (iter != m_impl->m_socket_map.end()) {
     m_impl->m_socket_map.erase(iter);
+  }
 }
 
 void KCPRoom::sendData(std::string_view data) {

@@ -29,10 +29,10 @@ qjson::JObject RegisterCommand::execute(UserID executor,
 
   qjson::JObject returnJson =
       makeSuccessMessage("Successfully created a new user!");
-  UserID id = ptr->getUserID();
-  returnJson["user_id"] = id.getOriginValue();
+  UserID user_id = ptr->getUserID();
+  returnJson["user_id"] = user_id.getOriginValue();
 
-  serverLogger.debug("Registered new user: ", id.getOriginValue());
+  serverLogger.debug("Registered new user: ", user_id.getOriginValue());
   return returnJson;
 }
 
@@ -53,16 +53,17 @@ qjson::JObject AddFriendCommand::execute(UserID executor,
                                          qjson::JObject parameters) {
   UserID friend_id = UserID(parameters["user_id"].getInt());
 
-  if (!serverManager.hasUser(friend_id))
+  if (!serverManager.hasUser(friend_id)) {
     return makeErrorMessage("UserID is invalid!");
+  }
 
   if (serverManager.getUser(executor)->addFriend(friend_id)) {
     serverLogger.debug("User ", executor.getOriginValue(),
                        " sent a friend request to user ",
                        friend_id.getOriginValue());
     return makeSuccessMessage("Successfully sent application!");
-  } else
-    return makeErrorMessage("Can't send application");
+  }
+  return makeErrorMessage("Can't send application");
 }
 
 qjson::JObject
@@ -70,12 +71,14 @@ AcceptFriendVerificationCommand::execute(UserID executor,
                                          qjson::JObject parameters) {
   UserID user_id = UserID(parameters["user_id"].getInt());
 
-  if (!serverManager.hasUser(user_id))
+  if (!serverManager.hasUser(user_id)) {
     return makeErrorMessage("UserID is invalid!");
+  }
 
-  if (serverManager.getUser(executor)->acceptFriend(user_id))
+  if (serverManager.getUser(executor)->acceptFriend(user_id)) {
     serverLogger.debug("User ", executor.getOriginValue(), " apply user \"",
                        user_id.getOriginValue(), "\"'s friend request");
+  }
   return makeSuccessMessage("Successfully added a friend!");
 }
 
@@ -84,8 +87,9 @@ RejectFriendVerificationCommand::execute(UserID executor,
                                          qjson::JObject parameters) {
   UserID user_id = UserID(parameters["user_id"].getInt());
 
-  if (!serverManager.hasUser(user_id))
+  if (!serverManager.hasUser(user_id)) {
     return makeErrorMessage("UserID is invalid!");
+  }
 
   if (!serverManager.getUser(executor)->rejectFriend(user_id)) {
     return makeErrorMessage("Failed to reject!");
@@ -102,8 +106,8 @@ qjson::JObject GetFriendListCommand::execute(UserID executor,
   qjson::JObject returnJson =
       makeSuccessMessage("Successfully obtained friend list!");
 
-  for (const auto &i : set) {
-    returnJson["friend_list"].push_back(i.getOriginValue());
+  for (const auto &iter : set) {
+    returnJson["friend_list"].push_back(iter.getOriginValue());
   }
   serverLogger.debug("User ", executor.getOriginValue(), " get a friend list");
 
@@ -138,11 +142,13 @@ qjson::JObject RemoveFriendCommand::execute(UserID executor,
                                             qjson::JObject parameters) {
   UserID user_id = UserID(parameters["user_id"].getInt());
 
-  if (!serverManager.hasUser(user_id))
+  if (!serverManager.hasUser(user_id)) {
     return makeErrorMessage("UserID is invalid!");
+  }
 
-  if (!serverManager.getUser(executor)->removeFriend(user_id))
+  if (!serverManager.getUser(executor)->removeFriend(user_id)) {
     return makeErrorMessage("Failed to remove a friend!");
+  }
 
   serverLogger.debug("User ", executor.getOriginValue(),
                      " remove a friend: ", user_id.getOriginValue());
@@ -153,16 +159,17 @@ qjson::JObject AddGroupCommand::execute(UserID executor,
                                         qjson::JObject parameters) {
   GroupID group_id = GroupID(parameters["group_id"].getInt());
 
-  if (!serverManager.hasGroupRoom(group_id))
+  if (!serverManager.hasGroupRoom(group_id)) {
     return makeErrorMessage("GroupID is invalid!");
+  }
 
   if (serverManager.getUser(executor)->addGroup(group_id)) {
     serverLogger.debug("User ", executor.getOriginValue(),
                        " sent a group request to group ",
                        group_id.getOriginValue());
     return makeSuccessMessage("Successfully sent a group application!");
-  } else
-    return makeErrorMessage("Failed to send a group application!");
+  }
+  return makeErrorMessage("Failed to send a group application!");
 }
 
 qjson::JObject
@@ -175,8 +182,8 @@ AcceptGroupVerificationCommand::execute(UserID executor,
     serverLogger.debug("User ", executor.getOriginValue(), " accept user \"",
                        user_id.getOriginValue(), "\"'s group request");
     return makeSuccessMessage("Successfully accepted a group application!");
-  } else
-    return makeErrorMessage("Failed to accept a group application!");
+  }
+  return makeErrorMessage("Failed to accept a group application!");
 }
 
 qjson::JObject
@@ -189,8 +196,8 @@ RejectGroupVerificationCommand::execute(UserID executor,
     serverLogger.debug("User ", executor.getOriginValue(), " reject user \"",
                        user_id.getOriginValue(), "\"'s group request");
     return makeSuccessMessage("Successfully reject a group verfication!");
-  } else
-    return makeErrorMessage("Failed to reject a group application!");
+  }
+  return makeErrorMessage("Failed to reject a group application!");
 }
 
 qjson::JObject GetGroupListCommand::execute(UserID executor,
@@ -199,8 +206,8 @@ qjson::JObject GetGroupListCommand::execute(UserID executor,
   qjson::JObject returnJson =
       makeSuccessMessage("Successfully obtained group list!");
 
-  for (const auto &i : set) {
-    returnJson["friend_list"].push_back(i.getOriginValue());
+  for (const auto &iter : set) {
+    returnJson["friend_list"].push_back(iter.getOriginValue());
   }
 
   serverLogger.debug("User ", executor.getOriginValue(), " get a group list");
@@ -216,12 +223,12 @@ GetGroupVerificationListCommand::execute(UserID executor,
   auto returnJson =
       makeSuccessMessage("Successfully obtained verification list!");
   for (const auto &[group_id, user_struct] : map) {
-    auto group = std::to_string(group_id.getOriginValue());
-    returnJson["result"][group.c_str()]["user_id"] =
+    auto group_str = std::to_string(group_id.getOriginValue());
+    returnJson["result"][group_str]["user_id"] =
         user_struct.user_id.getOriginValue();
-    returnJson["result"][group.c_str()]["verification_type"] =
-        (int)user_struct.verification_type;
-    returnJson["result"][group.c_str()]["message"] = user_struct.message;
+    returnJson["result"][group_str]["verification_type"] =
+        static_cast<int>(user_struct.verification_type);
+    returnJson["result"][group_str]["message"] = user_struct.message;
   }
 
   serverLogger.debug("User ", executor.getOriginValue(),
@@ -235,11 +242,13 @@ qjson::JObject SendFriendMessageCommand::execute(UserID executor,
   UserID friend_id = UserID(parameters["friend_id"].getInt());
   std::string msg = parameters["message"].getString();
 
-  if (!serverManager.hasUser(friend_id))
+  if (!serverManager.hasUser(friend_id)) {
     return makeErrorMessage("UserID is invalid!");
+  }
 
-  if (!serverManager.getUser(executor)->userHasFriend(friend_id))
+  if (!serverManager.getUser(executor)->userHasFriend(friend_id)) {
     return makeErrorMessage("You don't have this friend!");
+  }
 
   // sending a message
   serverManager
@@ -257,11 +266,13 @@ qjson::JObject SendGroupMessageCommand::execute(UserID executor,
   GroupID group_id = GroupID(parameters["group_id"].getInt());
   std::string msg = parameters["message"].getString();
 
-  if (!serverManager.hasGroupRoom(group_id))
+  if (!serverManager.hasGroupRoom(group_id)) {
     return makeErrorMessage("GroupID is invalid!");
+  }
 
-  if (!serverManager.getUser(executor)->userHasGroup(group_id))
+  if (!serverManager.getUser(executor)->userHasGroup(group_id)) {
     return makeErrorMessage("You don't have this group!");
+  }
 
   serverManager.getGroupRoom(group_id)->sendMessage(executor, msg);
   serverLogger.debug("User ", executor.getOriginValue(),
@@ -285,16 +296,18 @@ qjson::JObject CreateGroupCommand::execute(UserID executor,
 qjson::JObject RemoveGroupCommand::execute(UserID executor,
                                            qjson::JObject parameters) {
   GroupID group_id = GroupID(parameters["group_id"].getInt());
-  if (!serverManager.getUser(executor)->removeGroup(group_id))
+  if (!serverManager.getUser(executor)->removeGroup(group_id)) {
     return makeErrorMessage("Failed to remove a group!");
+  }
   return makeSuccessMessage("Successfully removed a group!");
 }
 
 qjson::JObject LeaveGroupCommand::execute(UserID executor,
                                           qjson::JObject parameters) {
   GroupID group_id = GroupID(parameters["group_id"].getInt());
-  if (!serverManager.getUser(executor)->leaveGroup(group_id))
+  if (!serverManager.getUser(executor)->leaveGroup(group_id)) {
     return makeErrorMessage("Failed to leave a group!");
+  }
   return makeSuccessMessage("Successfully left a group!");
 }
 

@@ -47,7 +47,8 @@ public:
    * @param user2_id ID of the second user.
    * @return The ID of the created private room.
    */
-  [[nodiscard]] GroupID addPrivateRoom(UserID user1_id, UserID user2_id);
+  [[nodiscard]] GroupID addPrivateRoom(const UserID &user1_id,
+                                       const UserID &user2_id);
 
   /**
    * @brief Retrieves the private room ID between two users.
@@ -56,8 +57,8 @@ public:
    * @param user2_id ID of the second user.
    * @return The ID of the private room.
    */
-  [[nodiscard]] GroupID getPrivateRoomId(UserID user1_id,
-                                         UserID user2_id) const;
+  [[nodiscard]] GroupID getPrivateRoomId(const UserID &user1_id,
+                                         const UserID &user2_id) const;
 
   /**
    * @brief Checks if a private room exists.
@@ -65,9 +66,10 @@ public:
    * @param private_room_id The ID of the private room.
    * @return True if the private room exists, false otherwise.
    */
-  [[nodiscard]] bool hasPrivateRoom(GroupID private_room_id) const;
+  [[nodiscard]] bool hasPrivateRoom(const GroupID &private_room_id) const;
 
-  [[nodiscard]] bool hasPrivateRoom(UserID user1_id, UserID user2_id) const;
+  [[nodiscard]] bool hasPrivateRoom(const UserID &user1_id,
+                                    const UserID &user2_id) const;
 
   /**
    * @brief Retrieves a private room.
@@ -76,13 +78,13 @@ public:
    * @return Shared pointer to the private room.
    */
   [[nodiscard]] std::shared_ptr<qls::PrivateRoom>
-  getPrivateRoom(GroupID private_room_id) const;
+  getPrivateRoom(const GroupID &private_room_id) const;
 
   /**
    * @brief Removes a private room.
    * @param private_room_id The ID of the private room.
    */
-  void removePrivateRoom(GroupID private_room_id);
+  void removePrivateRoom(const GroupID &private_room_id);
 
   /**
    * @brief Adds a group room.
@@ -90,7 +92,7 @@ public:
    * @param operator_user_id ID of the user creating the group room.
    * @return The ID of the created group room.
    */
-  [[nodiscard]] GroupID addGroupRoom(UserID operator_user_id);
+  [[nodiscard]] GroupID addGroupRoom(const UserID &operator_user_id);
 
   /**
    * @brief Checks if a group room exists.
@@ -98,7 +100,7 @@ public:
    * @param group_room_id The ID of the group room.
    * @return True if the group room exists, false otherwise.
    */
-  [[nodiscard]] bool hasGroupRoom(GroupID group_room_id) const;
+  [[nodiscard]] bool hasGroupRoom(const GroupID &group_room_id) const;
 
   /**
    * @brief Retrieves a group room.
@@ -107,14 +109,14 @@ public:
    * @return Shared pointer to the group room.
    */
   [[nodiscard]] std::shared_ptr<qls::GroupRoom>
-  getGroupRoom(GroupID group_room_id) const;
+  getGroupRoom(const GroupID &group_room_id) const;
 
   /**
    * @brief Removes a group room.
    *
    * @param group_room_id The ID of the group room.
    */
-  void removeGroupRoom(GroupID group_room_id);
+  void removeGroupRoom(const GroupID &group_room_id);
 
   /**
    * @brief Adds a new user.
@@ -129,7 +131,7 @@ public:
    * @param user_id The ID of the user.
    * @return True if the user exists, false otherwise.
    */
-  [[nodiscard]] bool hasUser(UserID user_id) const;
+  [[nodiscard]] bool hasUser(const UserID &user_id) const;
 
   /**
    * @brief Retrieves a user.
@@ -137,7 +139,7 @@ public:
    * @param user_id The ID of the user.
    * @return Shared pointer to the user.
    */
-  [[nodiscard]] std::shared_ptr<qls::User> getUser(UserID user_id) const;
+  [[nodiscard]] std::shared_ptr<qls::User> getUser(const UserID &user_id) const;
 
   /**
    * @brief Retrieves the list of users.
@@ -150,62 +152,62 @@ public:
   /**
    * @brief Registers a socket with an optional user ID.
    *
-   * @param socket_ptr A shared pointer to the socket to register.
+   * @param connection_ptr A shared pointer to the socket to register.
    */
   void registerConnection(
-      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &socket_ptr);
+      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr);
 
   /**
    * @brief Checks if a socket is registered.
    *
-   * @param socket_ptr A shared pointer to the socket to check.
+   * @param connection_ptr A shared pointer to the socket to check.
    * @return true if the socket is registered, false otherwise.
    */
   [[nodiscard]] bool hasConnection(
-      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &socket_ptr)
+      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr)
       const;
 
   /**
    * @brief Checks if a socket is associated with a specific user ID.
    *
-   * @param socket_ptr A shared pointer to the Connection object.
+   * @param connection_ptr A shared pointer to the Connection object.
    * @param user_id The user ID to check against the socket.
    * @return true if the socket is associated with the specified user ID, false
    * otherwise.
    */
   [[nodiscard]] bool matchUserOfConnection(
-      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &socket_ptr,
-      UserID user_id) const;
+      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr,
+      const UserID &user_id) const;
 
   /**
    * @brief Gets the user ID associated with a socket.
    *
-   * @param socket_ptr A shared pointer to the Connection object.
+   * @param connection_ptr A shared pointer to the Connection object.
    * @return The user ID associated with the socket.
    */
   [[nodiscard]] UserID getUserIDOfConnection(
-      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &socket_ptr)
+      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr)
       const;
 
   /**
    * @brief Modifies the user ID associated with a registered socket.
    *
-   * @param socket_ptr A shared pointer to the socket whose user ID is to be
+   * @param connection_ptr A shared pointer to the socket whose user ID is to be
    * modified.
    * @param user_id The user ID to associate with the socket.
    * @param type The type of device associated with the socket.
    */
   void modifyUserOfConnection(
-      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &socket_ptr,
-      UserID user_id, DeviceType type);
+      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr,
+      const UserID &user_id, DeviceType type);
 
   /**
    * @brief Removes a registered socket.
    *
-   * @param socket_ptr A shared pointer to the socket to remove.
+   * @param connection_ptr A shared pointer to the socket to remove.
    */
   void removeConnection(
-      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &socket_ptr);
+      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr);
 
   /**
    * @brief Retrieves the SQL process for the server.

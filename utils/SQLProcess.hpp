@@ -3,6 +3,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <cstdint>
 #include <format>
 #include <functional>
 #include <future>
@@ -60,8 +61,9 @@ public:
   ~SQLDBProcess() {
     m_thread_is_running = false;
     m_cv.notify_all();
-    if (m_work_thread.joinable())
+    if (m_work_thread.joinable()) {
       m_work_thread.join();
+    }
   }
 
   /**
@@ -86,10 +88,12 @@ public:
    * @brief Connects to the SQL server and starts the worker threads.
    */
   void connectSQLServer() {
-    if (this->m_port == -1 || this->m_port > 65535)
+    if (this->m_port == -1 || this->m_port > UINT16_MAX) {
       throw std::logic_error("Data hasn't been initialized!");
-    if (this->m_thread_is_running)
+    }
+    if (this->m_thread_is_running) {
       throw std::logic_error("You have connected the server!");
+    }
 
     sql::Driver *driver = sql::mariadb::get_driver_instance();
     sql::Properties properties(
@@ -110,10 +114,12 @@ public:
           return !m_function_queue.empty() || !m_thread_is_running;
         });
 
-        if (!m_thread_is_running)
+        if (!m_thread_is_running) {
           return;
-        if (m_function_queue.empty())
+        }
+        if (m_function_queue.empty()) {
           continue;
+        }
 
         auto func = std::move(m_function_queue.front());
         m_function_queue.pop();
@@ -179,8 +185,9 @@ public:
    */
   [[nodiscard]] std::shared_ptr<sql::ResultSet>
   executeQuery(const std::string &command) {
-    if (!m_sqlconnection)
+    if (!m_sqlconnection) {
       throw std::runtime_error("Connection is null");
+    }
 
     std::shared_ptr<sql::Statement> statement(
         m_sqlconnection->createStatement());
@@ -199,8 +206,9 @@ public:
    * @throws std::runtime_error if the connection is null.
    */
   void executeUpdate(const std::string &command) {
-    if (!m_sqlconnection)
+    if (!m_sqlconnection) {
       throw std::runtime_error("Connection is null");
+    }
 
     std::shared_ptr<sql::Statement> statement(
         m_sqlconnection->createStatement());
@@ -216,9 +224,11 @@ public:
    */
   void preparedUpdate(
       const std::string &preparedCommand,
-      std::function<void(std::shared_ptr<sql::PreparedStatement> &)> callback) {
-    if (!m_sqlconnection)
+      const std::function<void(std::shared_ptr<sql::PreparedStatement> &)>
+          &callback) {
+    if (!m_sqlconnection) {
       throw std::runtime_error("Connection is null");
+    }
 
     std::shared_ptr<sql::PreparedStatement> stmnt(
         m_sqlconnection->prepareStatement(preparedCommand));
@@ -237,9 +247,11 @@ public:
    */
   [[nodiscard]] std::shared_ptr<sql::ResultSet> preparedQuery(
       const std::string &preparedCommand,
-      std::function<void(std::shared_ptr<sql::PreparedStatement> &)> callback) {
-    if (!m_sqlconnection)
+      const std::function<void(std::shared_ptr<sql::PreparedStatement> &)>
+          &callback) {
+    if (!m_sqlconnection) {
       throw std::runtime_error("Connection is null");
+    }
 
     std::shared_ptr<sql::PreparedStatement> stmnt(
         m_sqlconnection->prepareStatement(preparedCommand));

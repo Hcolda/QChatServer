@@ -13,7 +13,11 @@ namespace qls {
 
 class RateLimiter final {
 public:
-  RateLimiter(double global_capacity = 500.0, double single_capacity = 5.0)
+  constexpr static double default_global_capacity = 500.0;
+  constexpr static double default_single_capacity = 5.0;
+
+  RateLimiter(double global_capacity = default_global_capacity,
+              double single_capacity = default_single_capacity)
       : m_global_capacity(global_capacity), m_single_capacity(single_capacity) {
   }
   ~RateLimiter() noexcept = default;
@@ -30,25 +34,29 @@ public:
     // time
     bucket.tokens =
         std::min(m_single_capacity.load(),
-                 bucket.tokens + (now - bucket.last_update).count() * 1e-9 *
-                                     m_single_capacity);
+                 bucket.tokens +
+                     (static_cast<double>((now - bucket.last_update).count()) *
+                      1e-9 * m_single_capacity));
     bucket.last_update = now;
     bool allow = bucket.tokens-- > 0;
     // Unlock the lock to keep speedy of the process
     lock.unlock();
 
-    if (!allow)
+    if (!allow) {
       return false;
+    }
 
     // Get global token
     double local_global_token = m_global_token.load();
     // Update global tokens of bucket
-    local_global_token =
-        std::min(m_global_capacity.load(),
-                 local_global_token + (now - m_last_update.load()).count() *
-                                          1e-9 * m_global_capacity);
-    if (local_global_token <= 0)
+    local_global_token = std::min(
+        m_global_capacity.load(),
+        local_global_token +
+            (static_cast<double>((now - m_last_update.load()).count()) * 1e-9 *
+             m_global_capacity));
+    if (local_global_token <= 0) {
       allow = false;
+    }
     m_global_token = local_global_token - 1;
     m_last_update.store(now);
     return allow;
@@ -76,8 +84,9 @@ public:
       timer.expires_after(30s);
       co_await timer.async_wait(asio::use_awaitable);
       std::lock_guard<spinlock_mutex> lock(m_token_buckets_mutex);
-      std::erase_if(m_token_buckets, [](const auto &i) {
-        return std::chrono::steady_clock::now() - i.second.last_update >= 1min;
+      std::erase_if(m_token_buckets, [](const auto &iter) {
+        return std::chrono::steady_clock::now() - iter.second.last_update >=
+               1min;
       });
     }
   }

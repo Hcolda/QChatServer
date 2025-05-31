@@ -68,11 +68,12 @@ struct UserImpl {
   inline static ossl_proxy m_ossl_proxy = {};
   inline static md_proxy m_md_proxy = {m_ossl_proxy, "SHA3-512"};
 
-  bool removeFriend(UserID friend_user_id) {
-    std::unique_lock ul(m_user_friend_set_mutex);
+  bool removeFriend(const UserID &friend_user_id) {
+    std::unique_lock lock(m_user_friend_set_mutex);
     auto iter = m_user_friend_set.find(friend_user_id);
-    if (iter == m_user_friend_set.cend())
+    if (iter == m_user_friend_set.cend()) {
       return false;
+    }
 
     m_user_friend_set.erase(iter);
     return true;
@@ -86,7 +87,7 @@ struct UserImpl {
  */
 template <class T>
   requires requires(T json_value) { qjson::JObject(json_value); }
-static inline void sendJsonToUser(qls::UserID user_id, T &&json) {
+static inline void sendJsonToUser(const UserID &user_id, T &&json) {
   auto pack = DataPackage::makePackage(
       qjson::JObject(std::forward<T>(json)).to_string());
   pack->type = DataPackage::Text;
@@ -99,13 +100,14 @@ static inline void sendJsonToUser(It begin, S end, T &&json) {
   auto pack = DataPackage::makePackage(
       qjson::JObject(std::forward<T>(json)).to_string());
   pack->type = DataPackage::Text;
-  std::ranges::for_each(
-      begin, end, [pack = std::move(pack)](const qls::UserID &user_id) {
-        serverManager.getUser(user_id)->notifyAll(pack->packageToString());
-      });
+  std::ranges::for_each(std::move(begin), std::move(end),
+                        [pack = std::move(pack)](const qls::UserID &user_id) {
+                          serverManager.getUser(user_id)->notifyAll(
+                              pack->packageToString());
+                        });
 }
 
-User::User(UserID user_id, bool is_create)
+User::User(const UserID &user_id, bool is_create)
     : // allocate and construct the pointer of implement
       m_impl(std::pmr::polymorphic_allocator<>(&local_user_sync_pool)
                  .new_object<UserImpl>()) {
@@ -117,11 +119,11 @@ User::User(UserID user_id, bool is_create)
           .time_since_epoch()
           .count();
 
-  if (is_create) {
-    // Update database
-  } else {
-    // Read the data from database
-  }
+  // if (is_create) {
+  //   // Update database
+  // } else {
+  //   // Read the data from database
+  // }
 }
 
 User::~User() = default;
@@ -169,39 +171,40 @@ bool User::isUserPassword(std::string_view password) const {
 }
 
 void User::updateUserName(std::string_view user_name) {
-  std::unique_lock lg(m_impl->m_data_mutex);
+  std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->user_name = user_name;
 }
 
 void User::updateAge(int age) {
-  std::unique_lock lg(m_impl->m_data_mutex);
+  std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->age = age;
 }
 
 void User::updateUserEmail(std::string_view email) {
-  std::unique_lock lg(m_impl->m_data_mutex);
+  std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->email = email;
 }
 
 void User::updateUserPhone(std::string_view phone) {
-  std::unique_lock lg(m_impl->m_data_mutex);
+  std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->phone = phone;
 }
 
 void User::updateUserProfile(std::string_view profile) {
-  std::unique_lock lg(m_impl->m_data_mutex);
+  std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->profile = profile;
 }
 
 void User::firstUpdateUserPassword(std::string_view new_password) {
-  if (!m_impl->password.empty())
+  if (!m_impl->password.empty()) {
     throw std::system_error(qls_errc::password_already_set);
+  }
 
   md_ctx_proxy sha512_proxy(m_impl->m_md_proxy);
-  static std::mt19937_64 mt(std::random_device{}());
+  static std::mt19937_64 mt64(std::random_device{}());
 
   // Generate salt and hash of password
-  std::string localSalt = std::to_string(mt());
+  std::string localSalt = std::to_string(mt64());
   std::string localPassword = sha512_proxy(new_password, localSalt);
 
   {
@@ -221,10 +224,10 @@ void User::updateUserPassword(std::string_view old_password,
                             "wrong old password");
 
   md_ctx_proxy sha512_proxy(m_impl->m_md_proxy);
-  static std::mt19937_64 mt(std::random_device{}());
+  static std::mt19937_64 mt64(std::random_device{}());
 
   // Generate salt and hash of password
-  std::string localSalt = std::to_string(mt());
+  std::string localSalt = std::to_string(mt64());
   std::string localPassword = sha512_proxy(new_password, localSalt);
 
   {
@@ -237,13 +240,13 @@ void User::updateUserPassword(std::string_view old_password,
   }
 }
 
-bool User::userHasFriend(UserID friend_user_id) const {
+bool User::userHasFriend(const UserID &friend_user_id) const {
   std::shared_lock lock(m_impl->m_user_friend_set_mutex);
   return m_impl->m_user_friend_set.find(friend_user_id) !=
          m_impl->m_user_friend_set.cend();
 }
 
-bool User::userHasGroup(GroupID group_id) const {
+bool User::userHasGroup(const GroupID &group_id) const {
   std::shared_lock lock(m_impl->m_user_group_set_mutex);
   return m_impl->m_user_group_set.find(group_id) !=
          m_impl->m_user_group_set.cend();
@@ -259,18 +262,21 @@ std::unordered_set<GroupID> User::getGroupList() const {
   return m_impl->m_user_group_set;
 }
 
-bool User::addFriend(UserID friend_user_id) {
+bool User::addFriend(const UserID &friend_user_id) {
   UserID self_id = this->getUserID();
-  if (self_id == friend_user_id || !serverManager.hasUser(friend_user_id))
+  if (self_id == friend_user_id || !serverManager.hasUser(friend_user_id)) {
     return false;
+  }
 
   // check if they are friends
-  if (!serverManager.hasPrivateRoom(self_id, friend_user_id))
+  if (!serverManager.hasPrivateRoom(self_id, friend_user_id)) {
     return false;
+  }
 
   auto &ver = serverManager.getServerVerificationManager();
-  if (ver.hasFriendRoomVerification(self_id, friend_user_id))
+  if (ver.hasFriendRoomVerification(self_id, friend_user_id)) {
     return false;
+  }
 
   ver.applyFriendRoomVerification(self_id, friend_user_id);
 
@@ -283,12 +289,13 @@ bool User::addFriend(UserID friend_user_id) {
   return true;
 }
 
-bool User::acceptFriend(UserID friend_user_id) {
+bool User::acceptFriend(const UserID &friend_user_id) {
   UserID self_id = this->getUserID();
   if (self_id == friend_user_id || !serverManager.hasUser(friend_user_id) ||
       !serverManager.getServerVerificationManager().hasFriendRoomVerification(
-          self_id, friend_user_id))
+          self_id, friend_user_id)) {
     return false;
+  }
 
   serverManager.getServerVerificationManager().acceptFriendVerification(
       friend_user_id, self_id);
@@ -301,12 +308,13 @@ bool User::acceptFriend(UserID friend_user_id) {
   return true;
 }
 
-bool User::rejectFriend(UserID friend_user_id) {
+bool User::rejectFriend(const UserID &friend_user_id) {
   UserID self_id = this->getUserID();
   if (self_id == friend_user_id || !serverManager.hasUser(friend_user_id) ||
       !serverManager.getServerVerificationManager().hasFriendRoomVerification(
-          self_id, friend_user_id))
+          self_id, friend_user_id)) {
     return false;
+  }
 
   try {
     serverManager.getServerVerificationManager().removeFriendRoomVerification(
@@ -324,13 +332,15 @@ bool User::rejectFriend(UserID friend_user_id) {
   return true;
 }
 
-bool User::removeFriend(UserID friend_user_id) {
+bool User::removeFriend(const UserID &friend_user_id) {
   UserID self_id = this->getUserID();
-  if (self_id == friend_user_id || !serverManager.hasUser(friend_user_id))
+  if (self_id == friend_user_id || !serverManager.hasUser(friend_user_id)) {
     return false;
+  }
 
-  if (!this->userHasFriend(friend_user_id))
+  if (!this->userHasFriend(friend_user_id)) {
     return false;
+  }
 
   m_impl->removeFriend(friend_user_id);
   serverManager.getUser(friend_user_id)->m_impl->removeFriend(friend_user_id);
@@ -345,25 +355,29 @@ bool User::removeFriend(UserID friend_user_id) {
 }
 
 void User::updateFriendList(
-    std::function<void(std::unordered_set<UserID> &)> callback_function) {
-  if (!callback_function)
+    const std::function<void(std::unordered_set<UserID> &)>
+        &callback_function) {
+  if (!callback_function) {
     throw std::system_error(make_error_code(qls::qls_errc::null_pointer));
+  }
 
   std::unique_lock lock(m_impl->m_user_friend_set_mutex);
   callback_function(m_impl->m_user_friend_set);
 }
 
 void User::updateGroupList(
-    std::function<void(std::unordered_set<GroupID> &)> callback_function) {
-  if (!callback_function)
+    const std::function<void(std::unordered_set<GroupID> &)>
+        &callback_function) {
+  if (!callback_function) {
     throw std::system_error(make_error_code(qls::qls_errc::null_pointer));
+  }
 
   std::unique_lock lock(m_impl->m_user_group_set_mutex);
   callback_function(m_impl->m_user_group_set);
 }
 
 void User::addFriendVerification(
-    UserID friend_user_id,
+    const UserID &friend_user_id,
     const Verification::UserVerification &user_verification) {
   std::unique_lock lock(m_impl->m_user_friend_verification_map_mutex);
   m_impl->m_user_friend_verification_map.emplace(friend_user_id,
@@ -371,17 +385,18 @@ void User::addFriendVerification(
 }
 
 void User::addGroupVerification(
-    GroupID group_id,
+    const GroupID &group_id,
     const Verification::GroupVerification &group_verification) {
   std::unique_lock lock(m_impl->m_user_group_verification_map_mutex);
   m_impl->m_user_group_verification_map.insert({group_id, group_verification});
 }
 
-void User::removeFriendVerification(UserID friend_user_id) {
+void User::removeFriendVerification(const UserID &friend_user_id) {
   std::unique_lock lock(m_impl->m_user_friend_verification_map_mutex);
   auto itor = m_impl->m_user_friend_verification_map.find(friend_user_id);
-  if (itor == m_impl->m_user_friend_verification_map.cend())
+  if (itor == m_impl->m_user_friend_verification_map.cend()) {
     return;
+  }
   m_impl->m_user_friend_verification_map.erase(itor);
 }
 
@@ -391,15 +406,17 @@ User::getFriendVerificationList() const {
   return m_impl->m_user_friend_verification_map;
 }
 
-bool User::addGroup(GroupID group_id) {
+bool User::addGroup(const GroupID &group_id) {
   UserID self_id = this->getUserID();
   if (!serverManager.hasGroupRoom(group_id) ||
-      serverManager.getGroupRoom(group_id)->hasMember(self_id))
+      serverManager.getGroupRoom(group_id)->hasMember(self_id)) {
     return false;
+  }
 
   auto &ver = serverManager.getServerVerificationManager();
-  if (ver.hasGroupRoomVerification(self_id, group_id))
+  if (ver.hasGroupRoomVerification(self_id, group_id)) {
     return false;
+  }
 
   ver.applyGroupRoomVerification(self_id, group_id);
 
@@ -420,12 +437,13 @@ GroupID User::createGroup() {
   return groupid;
 }
 
-bool User::acceptGroup(GroupID group_id, UserID user_id) {
+bool User::acceptGroup(const GroupID &group_id, const UserID &user_id) {
   UserID self_id = this->getUserID();
   if (!serverManager.hasGroupRoom(group_id) ||
       serverManager.getGroupRoom(group_id)->hasMember(user_id) ||
-      self_id != serverManager.getGroupRoom(group_id)->getAdministrator())
+      self_id != serverManager.getGroupRoom(group_id)->getAdministrator()) {
     return false;
+  }
 
   serverManager.getServerVerificationManager().acceptGroupRoom(user_id,
                                                                group_id);
@@ -438,16 +456,18 @@ bool User::acceptGroup(GroupID group_id, UserID user_id) {
   return true;
 }
 
-bool User::rejectGroup(GroupID group_id, UserID user_id) {
+bool User::rejectGroup(const GroupID &group_id, const UserID &user_id) {
   UserID self_id = this->getUserID();
   if (!serverManager.hasGroupRoom(group_id) ||
       serverManager.getGroupRoom(group_id)->hasMember(user_id) ||
-      self_id != serverManager.getGroupRoom(group_id)->getAdministrator())
+      self_id != serverManager.getGroupRoom(group_id)->getAdministrator()) {
     return false;
+  }
 
   auto &ver = serverManager.getServerVerificationManager();
-  if (!ver.hasGroupRoomVerification(user_id, group_id))
+  if (!ver.hasGroupRoomVerification(user_id, group_id)) {
     return false;
+  }
   ver.rejectGroupRoom(user_id, group_id);
 
   qjson::JObject json(qjson::JValueType::JDict);
@@ -457,11 +477,12 @@ bool User::rejectGroup(GroupID group_id, UserID user_id) {
   return true;
 }
 
-bool User::removeGroup(GroupID group_id) {
+bool User::removeGroup(const GroupID &group_id) {
   UserID self_id = this->getUserID();
   if (!serverManager.hasGroupRoom(group_id) ||
-      self_id != serverManager.getGroupRoom(group_id)->getAdministrator())
+      self_id != serverManager.getGroupRoom(group_id)->getAdministrator()) {
     return false;
+  }
 
   auto user_list = serverManager.getGroupRoom(group_id)->getUserList();
   // notify all users in the room...
@@ -474,15 +495,17 @@ bool User::removeGroup(GroupID group_id) {
   return true;
 }
 
-bool User::leaveGroup(GroupID group_id) {
+bool User::leaveGroup(const GroupID &group_id) {
   UserID self_id = this->getUserID();
 
-  if (!serverManager.hasGroupRoom(group_id))
+  if (!serverManager.hasGroupRoom(group_id)) {
     return false;
+  }
 
   auto group = serverManager.getGroupRoom(group_id);
-  if (!group->removeMember(self_id) || group->getAdministrator() == self_id)
+  if (!group->removeMember(self_id) || group->getAdministrator() == self_id) {
     return false;
+  }
 
   qjson::JObject json;
   json["type"] = "group_leave_member";
@@ -495,11 +518,13 @@ bool User::leaveGroup(GroupID group_id) {
   return true;
 }
 
-void User::removeGroupVerification(GroupID group_id, UserID user_id) {
+void User::removeGroupVerification(const GroupID &group_id,
+                                   const UserID &user_id) {
   std::unique_lock lock(m_impl->m_user_group_verification_map_mutex);
   std::size_t size = m_impl->m_user_group_verification_map.count(group_id);
-  if (!size)
+  if (!size) {
     throw std::system_error(qls_errc::verification_not_existed);
+  }
 
   auto itor = m_impl->m_user_group_verification_map.find(group_id);
   for (; itor->first == group_id &&
@@ -523,8 +548,9 @@ void User::addConnection(
     DeviceType type) {
   std::unique_lock lock(m_impl->m_connection_map_mutex);
   if (m_impl->m_connection_map.find(connection_ptr) !=
-      m_impl->m_connection_map.cend())
+      m_impl->m_connection_map.cend()) {
     throw std::system_error(qls_errc::socket_pointer_existed);
+  }
 
   m_impl->m_connection_map.emplace(connection_ptr, type);
 }
@@ -542,9 +568,10 @@ void User::modifyConnectionType(
     DeviceType type) {
   std::unique_lock lock(m_impl->m_connection_map_mutex);
   auto iter = m_impl->m_connection_map.find(connection_ptr);
-  if (iter == m_impl->m_connection_map.cend())
+  if (iter == m_impl->m_connection_map.cend()) {
     throw std::system_error(qls_errc::null_socket_pointer,
                             "socket pointer doesn't exist");
+  }
 
   iter->second = type;
 }
@@ -553,9 +580,10 @@ void User::removeConnection(
     const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr) {
   std::unique_lock lock(m_impl->m_connection_map_mutex);
   auto iter = m_impl->m_connection_map.find(connection_ptr);
-  if (iter == m_impl->m_connection_map.cend())
+  if (iter == m_impl->m_connection_map.cend()) {
     throw std::system_error(qls_errc::null_socket_pointer,
                             "socket pointer doesn't exist");
+  }
 
   m_impl->m_connection_map.erase(iter);
 }
@@ -566,14 +594,15 @@ void User::notifyAll(std::string_view data) {
       std::pmr::polymorphic_allocator<std::string>(&local_user_sync_pool),
       data));
   for (const auto &[connection_ptr, type] : m_impl->m_connection_map) {
-    asio::async_write(
-        connection_ptr->socket, asio::buffer(*buffer_ptr),
-        asio::bind_executor(connection_ptr->strand,
-                            [buffer_ptr](std::error_code ec, std::size_t) {
-                              if (ec)
-                                serverLogger.error('[', ec.category().name(),
-                                                   ']', ec.message());
-                            }));
+    asio::async_write(connection_ptr->socket, asio::buffer(*buffer_ptr),
+                      asio::bind_executor(
+                          connection_ptr->strand,
+                          [buffer_ptr](std::error_code errorc, std::size_t) {
+                            if (errorc) {
+                              serverLogger.error('[', errorc.category().name(),
+                                                 ']', errorc.message());
+                            }
+                          }));
   }
 }
 
@@ -586,12 +615,14 @@ void User::notifyWithType(DeviceType type, std::string_view data) {
     if (dtype == type) {
       asio::async_write(
           connection_ptr->socket, asio::buffer(*buffer_ptr),
-          asio::bind_executor(connection_ptr->strand, [this, buffer_ptr](
-                                                          std::error_code ec,
-                                                          std::size_t n) {
-            if (ec)
-              serverLogger.error('[', ec.category().name(), ']', ec.message());
-          }));
+          asio::bind_executor(
+              connection_ptr->strand,
+              [this, buffer_ptr](std::error_code errorc, std::size_t n) {
+                if (errorc) {
+                  serverLogger.error('[', errorc.category().name(), ']',
+                                     errorc.message());
+                }
+              }));
     }
   }
 }

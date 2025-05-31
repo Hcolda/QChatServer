@@ -40,8 +40,9 @@ public:
    * @return true if data can be read, false otherwise.
    */
   [[nodiscard]] bool canRead() const {
-    if (m_buffer.size() < sizeof(T))
+    if (m_buffer.size() < sizeof(T)) {
       return false;
+    }
 
     T length = 0;
     std::memcpy(&length, m_buffer.c_str(), sizeof(T));
@@ -54,8 +55,9 @@ public:
    * @return The length of the first message.
    */
   [[nodiscard]] std::size_t firstMsgLength() const {
-    if (m_buffer.size() < sizeof(T))
+    if (m_buffer.size() < sizeof(T)) {
       return 0;
+    }
 
     T length = 0;
     std::memcpy(&length, m_buffer.c_str(), sizeof(T));
@@ -68,10 +70,12 @@ public:
    * @return The data package.
    */
   [[nodiscard]] std::string read() {
-    if (!canRead())
+    if (!canRead()) {
       throw std::system_error(qls_errc::incomplete_package);
-    else if (!firstMsgLength())
+    }
+    if (!firstMsgLength()) {
       throw std::system_error(qls_errc::empty_length);
+    }
 
     std::string result = {m_buffer.begin(),
                           m_buffer.begin() + firstMsgLength()};
@@ -85,10 +89,12 @@ public:
    * @param buffer The target string to store the data.
    */
   void read(std::string &buffer) {
-    if (!canRead())
+    if (!canRead()) {
       throw std::system_error(qls_errc::incomplete_package);
-    else if (!firstMsgLength())
+    }
+    if (!firstMsgLength()) {
       throw std::system_error(qls_errc::empty_length);
+    }
 
     buffer.assign(m_buffer.begin(), m_buffer.begin() + firstMsgLength());
     m_buffer.erase(0, firstMsgLength());
@@ -99,10 +105,12 @@ public:
    * @param buffer The target string to store the data.
    */
   void read(std::pmr::string &buffer) {
-    if (!canRead())
+    if (!canRead()) {
       throw std::system_error(qls_errc::incomplete_package);
-    else if (!firstMsgLength())
+    }
+    if (!firstMsgLength()) {
       throw std::system_error(qls_errc::empty_length);
+    }
 
     buffer.assign(m_buffer.begin(), m_buffer.begin() + firstMsgLength());
     m_buffer.erase(0, firstMsgLength());

@@ -14,45 +14,49 @@ template <int MIN_Level = 1, int MAX_Level = 100>
 class UserLevel final {
 public:
   UserLevel(int value = MIN_Level) : m_value(MIN_Level) {
-    if (!(MIN_Level <= value && value <= MAX_Level))
+    if (MIN_Level > value || value > MAX_Level) {
       throw std::system_error(qls_errc::group_room_user_level_invalid);
+    }
   }
 
-  UserLevel(const UserLevel &u) : m_value(MIN_Level) {
-    std::shared_lock lock(u.m_value_mutex);
-    m_value = u.m_value;
+  UserLevel(const UserLevel &user_level) : m_value(MIN_Level) {
+    std::shared_lock lock(user_level.m_value_mutex);
+    m_value = user_level.m_value;
   }
 
-  UserLevel(UserLevel &&u) noexcept : m_value(MIN_Level) {
-    std::shared_lock lock(u.m_value_mutex);
-    m_value = u.m_value;
+  UserLevel(UserLevel &&user_level) noexcept : m_value(MIN_Level) {
+    std::shared_lock lock(user_level.m_value_mutex);
+    m_value = user_level.m_value;
   }
 
   ~UserLevel() noexcept = default;
 
-  UserLevel &operator=(const UserLevel &u) {
-    if (&u == this)
+  UserLevel &operator=(const UserLevel &user_level) {
+    if (&user_level == this) {
       return *this;
+    }
     std::unique_lock lock_1(m_value_mutex, std::defer_lock);
-    std::shared_lock lock_2(u.m_value_mutex, std::defer_lock);
+    std::shared_lock lock_2(user_level.m_value_mutex, std::defer_lock);
     std::lock(lock_1, lock_2);
 
-    m_value = u.m_value;
+    m_value = user_level.m_value;
     return *this;
   }
 
   bool increase(int value) {
     std::unique_lock lock(m_value_mutex);
-    if (!(MIN_Level <= m_value + value && m_value + value <= MAX_Level))
+    if (MIN_Level > m_value + value || m_value + value > MAX_Level) {
       return false;
+    }
     m_value += value;
     return true;
   }
 
   bool decrease(int value) {
     std::unique_lock lock(m_value_mutex);
-    if (!(MIN_Level <= m_value - value && m_value - value <= MAX_Level))
+    if (MIN_Level > m_value + value || m_value + value > MAX_Level) {
       return false;
+    }
     m_value -= value;
     return true;
   }

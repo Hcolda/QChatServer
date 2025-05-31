@@ -5,6 +5,7 @@
 #include <shared_mutex>
 #include <system_error>
 
+#include "groupid.hpp"
 #include "qls_error.h"
 #include "user.h"
 
@@ -85,9 +86,11 @@ void Manager::init() {
   m_impl->m_verificationManager.init();
 }
 
-GroupID Manager::addPrivateRoom(UserID user1_id, UserID user2_id) {
-  std::unique_lock lock1(m_impl->m_privateRoom_map_mutex, std::defer_lock),
-      lock2(m_impl->m_userID_to_privateRoomID_map_mutex, std::defer_lock);
+GroupID Manager::addPrivateRoom(const UserID &user1_id,
+                                const UserID &user2_id) {
+  std::unique_lock lock1(m_impl->m_privateRoom_map_mutex, std::defer_lock);
+  std::unique_lock lock2(m_impl->m_userID_to_privateRoomID_map_mutex,
+                         std::defer_lock);
   std::lock(lock1, lock2);
 
   // 私聊房间id
@@ -108,60 +111,67 @@ GroupID Manager::addPrivateRoom(UserID user1_id, UserID user2_id) {
   return privateRoom_id;
 }
 
-GroupID Manager::getPrivateRoomId(UserID user1_id, UserID user2_id) const {
+GroupID Manager::getPrivateRoomId(const UserID &user1_id,
+                                  const UserID &user2_id) const {
   std::shared_lock lock(m_impl->m_userID_to_privateRoomID_map_mutex);
   if (m_impl->m_userID_to_privateRoomID_map.find({user1_id, user2_id}) !=
-      m_impl->m_userID_to_privateRoomID_map.cend())
+      m_impl->m_userID_to_privateRoomID_map.cend()) {
     return GroupID(
         m_impl->m_userID_to_privateRoomID_map.find({user1_id, user2_id})
             ->second);
-  else if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
-           m_impl->m_userID_to_privateRoomID_map.cend())
+  } else if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
+             m_impl->m_userID_to_privateRoomID_map.cend()) {
     return GroupID(
         m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id})
             ->second);
-  else
+  } else {
     throw std::system_error(
         make_error_code(qls_errc::private_room_not_existed));
+  }
 }
 
-bool Manager::hasPrivateRoom(GroupID private_room_id) const {
+bool Manager::hasPrivateRoom(const GroupID &private_room_id) const {
   std::shared_lock lock(m_impl->m_privateRoom_map_mutex);
   return m_impl->m_privateRoom_map.find(private_room_id) !=
          m_impl->m_privateRoom_map.cend();
 }
 
-bool Manager::hasPrivateRoom(UserID user1_id, UserID user2_id) const {
+bool Manager::hasPrivateRoom(const UserID &user1_id,
+                             const UserID &user2_id) const {
   std::shared_lock lock(m_impl->m_userID_to_privateRoomID_map_mutex);
   if (m_impl->m_userID_to_privateRoomID_map.find({user1_id, user2_id}) !=
-      m_impl->m_userID_to_privateRoomID_map.cend())
+      m_impl->m_userID_to_privateRoomID_map.cend()) {
     return true;
-  else if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
-           m_impl->m_userID_to_privateRoomID_map.cend())
+  }
+  if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
+      m_impl->m_userID_to_privateRoomID_map.cend()) {
     return true;
-  else
-    return false;
+  }
+  return false;
 }
 
 std::shared_ptr<PrivateRoom>
-Manager::getPrivateRoom(GroupID private_room_id) const {
+Manager::getPrivateRoom(const GroupID &private_room_id) const {
   std::shared_lock lock(m_impl->m_privateRoom_map_mutex);
   auto itor = m_impl->m_privateRoom_map.find(private_room_id);
-  if (itor == m_impl->m_privateRoom_map.cend())
+  if (itor == m_impl->m_privateRoom_map.cend()) {
     throw std::system_error(
         make_error_code(qls_errc::private_room_not_existed));
+  }
   return itor->second;
 }
 
-void Manager::removePrivateRoom(GroupID private_room_id) {
-  std::unique_lock lock1(m_impl->m_privateRoom_map_mutex, std::defer_lock),
-      lock2(m_impl->m_userID_to_privateRoomID_map_mutex, std::defer_lock);
+void Manager::removePrivateRoom(const GroupID &private_room_id) {
+  std::unique_lock lock1(m_impl->m_privateRoom_map_mutex, std::defer_lock);
+  std::unique_lock lock2(m_impl->m_userID_to_privateRoomID_map_mutex,
+                         std::defer_lock);
   std::lock(lock1, lock2);
 
   auto itor = m_impl->m_privateRoom_map.find(private_room_id);
-  if (itor == m_impl->m_privateRoom_map.cend())
+  if (itor == m_impl->m_privateRoom_map.cend()) {
     throw std::system_error(
         make_error_code(qls_errc::private_room_not_existed));
+  }
 
   {
     /*
@@ -171,16 +181,17 @@ void Manager::removePrivateRoom(GroupID private_room_id) {
   auto [user1_id, user2_id] = itor->second->getUserID();
 
   if (m_impl->m_userID_to_privateRoomID_map.find({user1_id, user2_id}) !=
-      m_impl->m_userID_to_privateRoomID_map.cend())
+      m_impl->m_userID_to_privateRoomID_map.cend()) {
     m_impl->m_userID_to_privateRoomID_map.erase({user1_id, user2_id});
-  else if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
-           m_impl->m_userID_to_privateRoomID_map.cend())
+  } else if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
+             m_impl->m_userID_to_privateRoomID_map.cend()) {
     m_impl->m_userID_to_privateRoomID_map.erase({user2_id, user1_id});
+  }
 
   m_impl->m_privateRoom_map.erase(itor);
 }
 
-GroupID Manager::addGroupRoom(UserID opreator_user_id) {
+GroupID Manager::addGroupRoom(const UserID &operator_user_id) {
   std::unique_lock lock(m_impl->m_groupRoom_map_mutex);
   // 新群聊id
   GroupID group_room_id(m_impl->m_newPrivateRoomId++);
@@ -193,30 +204,33 @@ GroupID Manager::addGroupRoom(UserID opreator_user_id) {
   m_impl->m_groupRoom_map[group_room_id] = std::allocate_shared<GroupRoom>(
       std::pmr::polymorphic_allocator<GroupRoom>(
           &m_impl->m_groupRoom_sync_pool),
-      group_room_id, opreator_user_id, true);
+      group_room_id, operator_user_id, true);
 
   return group_room_id;
 }
 
-bool Manager::hasGroupRoom(GroupID group_room_id) const {
+bool Manager::hasGroupRoom(const GroupID &group_room_id) const {
   std::shared_lock lock(m_impl->m_groupRoom_map_mutex);
   return m_impl->m_groupRoom_map.find(group_room_id) !=
          m_impl->m_groupRoom_map.cend();
 }
 
-std::shared_ptr<GroupRoom> Manager::getGroupRoom(GroupID group_room_id) const {
+std::shared_ptr<GroupRoom>
+Manager::getGroupRoom(const GroupID &group_room_id) const {
   std::shared_lock lock(m_impl->m_groupRoom_map_mutex);
   auto itor = m_impl->m_groupRoom_map.find(group_room_id);
-  if (itor == m_impl->m_groupRoom_map.cend())
+  if (itor == m_impl->m_groupRoom_map.cend()) {
     throw std::system_error(make_error_code(qls_errc::group_room_not_existed));
+  }
   return itor->second;
 }
 
-void Manager::removeGroupRoom(GroupID group_room_id) {
+void Manager::removeGroupRoom(const GroupID &group_room_id) {
   std::unique_lock lock(m_impl->m_groupRoom_map_mutex);
   auto itor = m_impl->m_groupRoom_map.find(group_room_id);
-  if (itor == m_impl->m_groupRoom_map.cend())
+  if (itor == m_impl->m_groupRoom_map.cend()) {
     throw std::system_error(make_error_code(qls_errc::group_room_not_existed));
+  }
 
   {
     // Remove the group room data from database
@@ -244,16 +258,17 @@ std::shared_ptr<User> Manager::addNewUser() {
   return iter->second;
 }
 
-bool Manager::hasUser(UserID user_id) const {
+bool Manager::hasUser(const UserID &user_id) const {
   std::shared_lock lock(m_impl->m_user_map_mutex);
   return m_impl->m_user_map.find(user_id) != m_impl->m_user_map.cend();
 }
 
-std::shared_ptr<User> Manager::getUser(UserID user_id) const {
+std::shared_ptr<User> Manager::getUser(const UserID &user_id) const {
   std::shared_lock lock(m_impl->m_user_map_mutex);
   auto itor = m_impl->m_user_map.find(user_id);
-  if (itor == m_impl->m_user_map.cend())
+  if (itor == m_impl->m_user_map.cend()) {
     throw std::system_error(make_error_code(qls_errc::user_not_existed));
+  }
 
   return itor->second;
 }
@@ -267,9 +282,10 @@ void Manager::registerConnection(
     const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr) {
   std::unique_lock lock(m_impl->m_connection_map_mutex);
   if (m_impl->m_connection_map.find(connection_ptr) !=
-      m_impl->m_connection_map.cend())
+      m_impl->m_connection_map.cend()) {
     throw std::system_error(make_error_code(qls_errc::socket_pointer_existed));
-  m_impl->m_connection_map.emplace(connection_ptr, -1ll);
+  }
+  m_impl->m_connection_map.emplace(connection_ptr, -1LL);
 }
 
 bool Manager::hasConnection(
@@ -282,11 +298,12 @@ bool Manager::hasConnection(
 
 bool Manager::matchUserOfConnection(
     const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr,
-    UserID user_id) const {
+    const UserID &user_id) const {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   auto iter = m_impl->m_connection_map.find(connection_ptr);
-  if (iter == m_impl->m_connection_map.cend())
+  if (iter == m_impl->m_connection_map.cend()) {
     return false;
+  }
   return iter->second == user_id;
 }
 
@@ -295,30 +312,34 @@ UserID Manager::getUserIDOfConnection(
     const {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   auto iter = m_impl->m_connection_map.find(connection_ptr);
-  if (iter == m_impl->m_connection_map.cend())
+  if (iter == m_impl->m_connection_map.cend()) {
     throw std::system_error(
         make_error_code(qls_errc::socket_pointer_not_existed));
+  }
   return iter->second;
 }
 
 void Manager::modifyUserOfConnection(
     const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr,
-    UserID user_id, DeviceType type) {
+    const UserID &user_id, DeviceType type) {
   std::unique_lock lock1(m_impl->m_connection_map_mutex, std::defer_lock);
   std::shared_lock lock2(m_impl->m_user_map_mutex, std::defer_lock);
   std::lock(lock1, lock2);
 
-  if (m_impl->m_user_map.find(user_id) == m_impl->m_user_map.cend())
+  if (m_impl->m_user_map.find(user_id) == m_impl->m_user_map.cend()) {
     throw std::system_error(make_error_code(qls_errc::user_not_existed));
+  }
 
   auto iter = m_impl->m_connection_map.find(connection_ptr);
-  if (iter == m_impl->m_connection_map.cend())
+  if (iter == m_impl->m_connection_map.cend()) {
     throw std::system_error(
         make_error_code(qls_errc::socket_pointer_not_existed));
+  }
 
-  if (iter->second != -1ll)
+  if (iter->second != -1LL) {
     m_impl->m_user_map.find(iter->second)
         ->second->removeConnection(connection_ptr);
+  }
   m_impl->m_user_map.find(user_id)->second->addConnection(connection_ptr, type);
   iter->second = user_id;
 }
@@ -330,13 +351,15 @@ void Manager::removeConnection(
   std::lock(lock1, lock2);
 
   auto iter = m_impl->m_connection_map.find(connection_ptr);
-  if (iter == m_impl->m_connection_map.cend())
+  if (iter == m_impl->m_connection_map.cend()) {
     throw std::system_error(
         make_error_code(qls_errc::socket_pointer_not_existed));
+  }
 
-  if (iter->second != -1l)
+  if (iter->second != -1LL) {
     m_impl->m_user_map.find(iter->second)
         ->second->removeConnection(connection_ptr);
+  }
 
   m_impl->m_connection_map.erase(iter);
 }

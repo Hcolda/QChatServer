@@ -17,8 +17,9 @@ public:
   spinlock_mutex &operator=(spinlock_mutex &&) = delete;
 
   void lock() noexcept {
-    while (flag_.test_and_set(std::memory_order_acquire))
+    while (flag_.test_and_set(std::memory_order_acquire)) {
       flag_.wait(true, std::memory_order_relaxed);
+    }
   }
 
   bool try_lock() noexcept {

@@ -18,8 +18,9 @@ public:
   ~JsonMessageProcess();
 
   UserID getLocalUserID() const;
-  asio::awaitable<qjson::JObject> processJsonMessage(const qjson::JObject &json,
-                                                     const SocketService &sf);
+  asio::awaitable<qjson::JObject>
+  processJsonMessage(const qjson::JObject &json,
+                     const SocketService &socket_service);
 
 private:
   std::unique_ptr<JsonMessageProcessImpl> m_process;

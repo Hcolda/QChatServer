@@ -1,11 +1,12 @@
 #ifndef QLS_ERROR_H
 #define QLS_ERROR_H
 
+#include <cstdint>
 #include <system_error>
 
 namespace qls {
 
-enum class qls_errc {
+enum class qls_errc : std::uint8_t {
   OK = 0,
 
   // system error

@@ -16,13 +16,13 @@ extern qls::Manager serverManager;
 namespace qls {
 
 struct FriendVerification {
-  UserID applicator;
-  UserID controller;
+  const UserID &applicator;
+  const UserID &controller;
 };
 
 struct GroupVerification {
-  UserID applicator;
-  GroupID controller;
+  const UserID &applicator;
+  const GroupID &controller;
 };
 
 } // namespace qls
@@ -94,8 +94,8 @@ void VerificationManager::init() {
   // sql init
 }
 
-void VerificationManager::applyFriendRoomVerification(UserID sender,
-                                                      UserID receiver) {
+void VerificationManager::applyFriendRoomVerification(const UserID &sender,
+                                                      const UserID &receiver) {
   if (sender == receiver) {
     throw std::system_error(qls_errc::invalid_verification);
   }
@@ -132,7 +132,7 @@ void VerificationManager::applyFriendRoomVerification(UserID sender,
     sender_uv.verification_type = qls::Verification::VerificationType::Sent;
 
     auto ptr = serverManager.getUser(sender);
-    ptr->addFriendVerification(receiver, std::move(sender_uv));
+    ptr->addFriendVerification(receiver, sender_uv);
   }
 
   // receiver
@@ -144,12 +144,12 @@ void VerificationManager::applyFriendRoomVerification(UserID sender,
         qls::Verification::VerificationType::Received;
 
     auto ptr = serverManager.getUser(receiver);
-    ptr->addFriendVerification(sender, std::move(receiver_uv));
+    ptr->addFriendVerification(sender, receiver_uv);
   }
 }
 
-bool VerificationManager::hasFriendRoomVerification(UserID sender,
-                                                    UserID receiver) const {
+bool VerificationManager::hasFriendRoomVerification(
+    const UserID &sender, const UserID &receiver) const {
   if (sender == receiver) {
     return false;
   }
@@ -159,8 +159,8 @@ bool VerificationManager::hasFriendRoomVerification(UserID sender,
          m_impl->m_friendRoomVerification_map.cend();
 }
 
-void VerificationManager::acceptFriendVerification(UserID sender,
-                                                   UserID receiver) {
+void VerificationManager::acceptFriendVerification(const UserID &sender,
+                                                   const UserID &receiver) {
   if (sender == receiver) {
     throw std::system_error(qls_errc::invalid_verification);
   }
@@ -195,8 +195,8 @@ void VerificationManager::acceptFriendVerification(UserID sender,
   this->removeFriendRoomVerification(sender, receiver);
 }
 
-void VerificationManager::rejectFriendVerification(UserID sender,
-                                                   UserID receiver) {
+void VerificationManager::rejectFriendVerification(const UserID &sender,
+                                                   const UserID &receiver) {
   if (sender == receiver) {
     throw std::system_error(qls_errc::invalid_verification);
   }
@@ -204,8 +204,8 @@ void VerificationManager::rejectFriendVerification(UserID sender,
   this->removeFriendRoomVerification(sender, receiver);
 }
 
-bool VerificationManager::isFriendVerified(UserID sender,
-                                           UserID receiver) const {
+bool VerificationManager::isFriendVerified(const UserID &sender,
+                                           const UserID &receiver) const {
   if (sender == receiver) {
     throw std::system_error(qls_errc::invalid_verification);
   }
@@ -220,8 +220,8 @@ bool VerificationManager::isFriendVerified(UserID sender,
   return iter->second;
 }
 
-void VerificationManager::removeFriendRoomVerification(UserID sender,
-                                                       UserID receiver) {
+void VerificationManager::removeFriendRoomVerification(const UserID &sender,
+                                                       const UserID &receiver) {
   if (sender == receiver) {
     throw std::system_error(qls_errc::invalid_verification);
   }
@@ -241,8 +241,8 @@ void VerificationManager::removeFriendRoomVerification(UserID sender,
   serverManager.getUser(receiver)->removeFriendVerification(sender);
 }
 
-void VerificationManager::applyGroupRoomVerification(UserID sender,
-                                                     GroupID receiver) {
+void VerificationManager::applyGroupRoomVerification(const UserID &sender,
+                                                     const GroupID &receiver) {
   if (!serverManager.hasGroupRoom(receiver)) {
     throw std::system_error(qls_errc::group_room_not_existed);
   }
@@ -270,7 +270,7 @@ void VerificationManager::applyGroupRoomVerification(UserID sender,
     sender_uv.verification_type = qls::Verification::Sent;
 
     auto ptr = serverManager.getUser(sender);
-    ptr->addGroupVerification(receiver, std::move(sender_uv));
+    ptr->addGroupVerification(receiver, sender_uv);
   }
 
   // Only modify the administrator's verification list
@@ -284,19 +284,20 @@ void VerificationManager::applyGroupRoomVerification(UserID sender,
 
     UserID adminID = serverManager.getGroupRoom(receiver)->getAdministrator();
     auto ptr = serverManager.getUser(adminID);
-    ptr->addGroupVerification(receiver, std::move(receiver_uv));
+    ptr->addGroupVerification(receiver, receiver_uv);
   }
 }
 
-bool VerificationManager::hasGroupRoomVerification(UserID sender,
-                                                   GroupID receiver) const {
+bool VerificationManager::hasGroupRoomVerification(
+    const UserID &sender, const GroupID &receiver) const {
   std::shared_lock lock(m_impl->m_groupVerification_map_mutex);
 
   return m_impl->m_groupVerification_map.find({sender, receiver}) !=
          m_impl->m_groupVerification_map.cend();
 }
 
-void VerificationManager::acceptGroupRoom(UserID sender, GroupID receiver) {
+void VerificationManager::acceptGroupRoom(const UserID &sender,
+                                          const GroupID &receiver) {
   {
     std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
 
@@ -308,21 +309,22 @@ void VerificationManager::acceptGroupRoom(UserID sender, GroupID receiver) {
     iter->second = true;
   }
 
-  bool _ = serverManager.getGroupRoom(receiver)->addMember(sender);
+  bool is_added = serverManager.getGroupRoom(receiver)->addMember(sender);
   // update user's list
   auto ptr = serverManager.getUser(sender);
   ptr->updateGroupList([receiver](std::unordered_set<qls::GroupID> &set) {
     set.insert(receiver);
   });
-  this->removeGroupRoomVerification(std::move(sender), std::move(receiver));
-}
-
-void VerificationManager::rejectGroupRoom(UserID sender, GroupID receiver) {
   this->removeGroupRoomVerification(sender, receiver);
 }
 
-bool VerificationManager::isGroupRoomVerified(UserID sender,
-                                              GroupID receiver) const {
+void VerificationManager::rejectGroupRoom(const UserID &sender,
+                                          const GroupID &receiver) {
+  this->removeGroupRoomVerification(sender, receiver);
+}
+
+bool VerificationManager::isGroupRoomVerified(const UserID &sender,
+                                              const GroupID &receiver) const {
   std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
 
   auto iter = m_impl->m_groupVerification_map.find({sender, receiver});
@@ -333,8 +335,8 @@ bool VerificationManager::isGroupRoomVerified(UserID sender,
   return iter->second;
 }
 
-void VerificationManager::removeGroupRoomVerification(UserID sender,
-                                                      GroupID receiver) {
+void VerificationManager::removeGroupRoomVerification(const UserID &sender,
+                                                      const GroupID &receiver) {
   {
     std::unique_lock lock(m_impl->m_groupVerification_map_mutex);
 
@@ -345,7 +347,8 @@ void VerificationManager::removeGroupRoomVerification(UserID sender,
 
     m_impl->m_groupVerification_map.erase(iter);
   }
-  UserID adminID = serverManager.getGroupRoom(receiver)->getAdministrator();
+  const UserID &adminID =
+      serverManager.getGroupRoom(receiver)->getAdministrator();
   serverManager.getUser(adminID)->removeGroupVerification(receiver, sender);
   serverManager.getUser(sender)->removeGroupVerification(receiver, sender);
 }

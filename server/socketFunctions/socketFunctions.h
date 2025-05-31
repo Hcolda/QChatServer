@@ -14,7 +14,7 @@ struct SocketServiceImpl;
 class SocketService final {
 public:
   SocketService(
-      std::shared_ptr<Connection<asio::ip::tcp::socket>> connection_ptr);
+      const std::shared_ptr<Connection<asio::ip::tcp::socket>> &connection_ptr);
   ~SocketService() noexcept;
 
   /**

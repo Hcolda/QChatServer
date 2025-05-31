@@ -20,8 +20,9 @@ public:
     m_isRunning = false;
     m_cv.notify_all();
 
-    if (m_thread.joinable())
+    if (m_thread.joinable()) {
       m_thread.join();
+    }
   }
 
   // 添加函数任务
@@ -48,8 +49,9 @@ public:
 
   // 删除任务
   void removeTask(long long postion) {
-    if (postion >= static_cast<long long>(m_taskNames.size()))
+    if (postion >= static_cast<long long>(m_taskNames.size())) {
       throw std::logic_error("The postion is invalid.");
+    }
 
     std::unique_lock lock(m_mutex);
 
@@ -71,20 +73,23 @@ protected:
     std::function<void()> function;
     long long interval = 0;
 
-    Task &operator=(const Task &t) {
-      if (this == &t)
+    Task &operator=(const Task &task) {
+      if (this == &task) {
         return *this;
+      }
 
-      clock = t.clock;
-      taskName = t.taskName;
-      function = t.function;
-      interval = t.interval;
+      clock = task.clock;
+      taskName = task.taskName;
+      function = task.function;
+      interval = task.interval;
       return *this;
     }
   };
 
   struct Lesser {
-    bool operator()(const Task &a, const Task &b) { return a.clock > b.clock; }
+    bool operator()(const Task &task1, const Task &task2) {
+      return task1.clock > task2.clock;
+    }
   };
 
   void workFunction() {
@@ -94,26 +99,28 @@ protected:
         return (!m_tasks.empty() && m_tasks.top().clock <= std::clock()) ||
                !m_isRunning;
       });
-      if (!m_isRunning)
+      if (!m_isRunning) {
         return;
+      }
 
       if (!m_removeTask.empty() &&
           m_removeTask.front() == m_tasks.top().taskName) {
         m_removeTask.pop();
         m_tasks.pop();
         lock.unlock();
-        if (!m_tasks.empty())
+        if (!m_tasks.empty()) {
           std::this_thread::sleep_for(std::chrono::milliseconds(
               (m_tasks.top().clock - std::clock()) > 0
                   ? (m_tasks.top().clock - std::clock())
                   : 0));
+        }
         continue;
       }
 
       Task task = m_tasks.top();
       m_tasks.pop();
       task.function();
-      task.clock += task.interval;
+      task.clock += static_cast<std::clock_t>(task.interval);
       m_tasks.push(std::move(task));
       lock.unlock();
       std::this_thread::sleep_for(
