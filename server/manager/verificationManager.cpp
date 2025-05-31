@@ -278,28 +278,28 @@ void VerificationManager::applyGroupRoomVerification(UserID sender, GroupID rece
     }
 
     {
-        qls::Verification::GroupVerification uv;
+        qls::Verification::GroupVerification sender_uv;
 
-        uv.group_id = receiver;
-        uv.user_id = sender;
-        uv.verification_type = qls::Verification::Sent;
+        sender_uv.group_id = receiver;
+        sender_uv.user_id = sender;
+        sender_uv.verification_type = qls::Verification::Sent;
 
         auto ptr = serverManager.getUser(sender);
-        ptr->addGroupVerification(receiver, std::move(uv));
+        ptr->addGroupVerification(receiver, std::move(sender_uv));
     }
 
     // Only modify the administrator's verification list
     // Because of over consumption of computer power
     {
-        qls::Verification::GroupVerification uv;
+        qls::Verification::GroupVerification receiver_uv;
 
-        uv.group_id = receiver;
-        uv.user_id = sender;
-        uv.verification_type = qls::Verification::Received;
+        receiver_uv.group_id = receiver;
+        receiver_uv.user_id = sender;
+        receiver_uv.verification_type = qls::Verification::Received;
 
         UserID adminID = serverManager.getGroupRoom(receiver)->getAdministrator();
         auto ptr = serverManager.getUser(adminID);
-        ptr->addGroupVerification(receiver, std::move(uv));
+        ptr->addGroupVerification(receiver, std::move(receiver_uv));
     }
 }
 

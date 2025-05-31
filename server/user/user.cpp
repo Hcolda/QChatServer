@@ -627,9 +627,10 @@ void User::notifyWithType(DeviceType type, std::string_view data)
     }
 }
 
-void UserImplDeleter::operator()(UserImpl *up)
+void UserImplDeleter::operator()(UserImpl *user_impl)
 {
-    std::pmr::polymorphic_allocator<UserImpl>(&local_user_sync_pool).delete_object(up);
+    std::pmr::polymorphic_allocator<UserImpl>(&local_user_sync_pool)
+        .delete_object(user_impl);
 }
 
 } // namespace qls

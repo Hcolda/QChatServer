@@ -51,7 +51,7 @@ struct Verification
 struct UserImpl;
 struct UserImplDeleter
 {
-    void operator()(UserImpl* up);
+    void operator()(UserImpl*);
 };
 
 /**
