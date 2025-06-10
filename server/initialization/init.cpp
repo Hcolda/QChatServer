@@ -1,5 +1,6 @@
 #include "init.h"
 
+#include <bit>
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -9,7 +10,6 @@
 #include "input.h"
 #include "manager.h"
 #include "network.h"
-#include "networkEndianness.hpp"
 
 extern Log::Logger serverLogger;
 extern qini::INIObject serverIni;
@@ -35,7 +35,6 @@ void Init::createConfig() {
     ini["ssl"]["certificate_file"] = "certs.pem";
     ini["ssl"]["password"] = "";
     ini["ssl"]["key_file"] = "key.pem";
-    ini["ssl"]["dh_file"] = "dh.pem";
 
     outfile << qini::INIWriter::fastWrite(ini);
   }
@@ -58,7 +57,7 @@ int init() {
 
   Network &serverNetwork = serverManager.getServerNetwork();
 
-  if (qls::isBigEndianness()) {
+  if constexpr (std::endian::native == std::endian::big) {
     serverLogger.info("The local endianness of the server is big-endian");
   } else {
     serverLogger.info("The local endianness of the server is little-endian");
@@ -88,11 +87,15 @@ int init() {
     // Read cert & key
     {
       {
-        std::ifstream cert(serverIni["ssl"]["certificate_file"]);
-        std::ifstream key(serverIni["ssl"]["key_file"]);
-
-        serverIni["ssl"]["password"];
-        if (!cert || !key) {
+        bool has_cert_file =
+            std::filesystem::exists(serverIni["ssl"]["certificate_file"]) &&
+            std::filesystem::is_regular_file(
+                serverIni["ssl"]["certificate_file"]);
+        bool has_key_file =
+            std::filesystem::exists(serverIni["ssl"]["certificate_file"]) &&
+            std::filesystem::is_regular_file(
+                serverIni["ssl"]["certificate_file"]);
+        if (!has_cert_file || !has_key_file) {
           throw std::logic_error(
               "INI configuration file section: ssl, unable to read files!");
         }
@@ -104,9 +107,6 @@ int init() {
                                            ? "empty"
                                            : serverIni["ssl"]["password"]));
       serverLogger.info("Key file path: ", serverIni["ssl"]["key_file"]);
-      serverLogger.info("DH file path: ", (serverIni["ssl"]["dh_file"].empty()
-                                               ? "empty"
-                                               : serverIni["ssl"]["dh_file"]));
 
       serverNetwork.setTlsConfig([]() {
         std::shared_ptr<asio::ssl::context> ssl_context =
@@ -144,9 +144,7 @@ int init() {
 
   try {
     serverLogger.info("Loading serverManager...");
-
     serverManager.init();
-
     serverLogger.info("serverManager loaded successfully!");
   } catch (const std::exception &e) {
     serverLogger.critical(std::string(e.what()));

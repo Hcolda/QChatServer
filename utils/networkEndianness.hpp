@@ -1,6 +1,7 @@
 #ifndef NETWORK_ENDIANNESS_HPP
 #define NETWORK_ENDIANNESS_HPP
 
+#include <bit>
 #include <concepts>
 #include <cstddef>
 
@@ -8,13 +9,7 @@ namespace qls {
 
 /// @brief Determine if the system is big endianness
 /// @return True if it is big endianness
-[[nodiscard]] inline bool isBigEndianness() {
-  union u_data {
-    unsigned char a;
-    unsigned int b = 0x12345678;
-  } data;
-  return data.a == 0x12;
-}
+[[deprecated("Outdated")]] consteval bool isBigEndianness();
 
 /// @brief Convert number of endianness
 /// @tparam T Type of integral
@@ -37,7 +32,7 @@ template <typename T>
 template <typename T>
   requires std::integral<T>
 [[nodiscard]] inline T swapNetworkEndianness(T value) {
-  if (!isBigEndianness()) {
+  if constexpr (std::endian::native == std::endian::little) {
     return swapEndianness(value);
   }
   return value;

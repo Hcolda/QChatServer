@@ -18,26 +18,29 @@ struct ManagerImpl {
   VerificationManager m_verificationManager; ///< Verification manager instance.
 
   // Group room map
-  std::unordered_map<GroupID, std::shared_ptr<GroupRoom>>
-      m_groupRoom_map; ///< Map of group room IDs to group rooms.
-  std::shared_mutex m_groupRoom_map_mutex; ///< Mutex for group room map.
   std::pmr::synchronized_pool_resource m_groupRoom_sync_pool;
+  std::pmr::unordered_map<GroupID, std::shared_ptr<GroupRoom>> m_groupRoom_map{
+      &m_groupRoom_sync_pool}; ///< Map of group room IDs to group rooms.
+  std::shared_mutex m_groupRoom_map_mutex; ///< Mutex for group room map.
 
   // Private room map
-  std::unordered_map<GroupID, std::shared_ptr<PrivateRoom>>
-      m_privateRoom_map; ///< Map of private room IDs to private rooms.
-  std::shared_mutex m_privateRoom_map_mutex; ///< Mutex for private room map.
   std::pmr::synchronized_pool_resource m_privateRoom_sync_pool;
+  std::pmr::unordered_map<GroupID, std::shared_ptr<PrivateRoom>>
+      m_privateRoom_map{&m_privateRoom_sync_pool}; ///< Map of private room IDs
+                                                   ///< to private rooms.
+  std::shared_mutex m_privateRoom_map_mutex; ///< Mutex for private room map.
 
   // Map of user IDs to private room IDs
-  std::unordered_map<PrivateRoomIDStruct, GroupID, PrivateRoomIDStructHasher>
-      m_userID_to_privateRoomID_map;
+  std::pmr::unordered_map<PrivateRoomIDStruct, GroupID,
+                          PrivateRoomIDStructHasher>
+      m_userID_to_privateRoomID_map{&m_privateRoom_sync_pool};
   std::shared_mutex m_userID_to_privateRoomID_map_mutex;
 
   // User map
-  std::unordered_map<UserID, std::shared_ptr<User>> m_user_map;
-  std::shared_mutex m_user_map_mutex;
   std::pmr::synchronized_pool_resource m_user_sync_pool;
+  std::pmr::unordered_map<UserID, std::shared_ptr<User>> m_user_map{
+      &m_user_sync_pool};
+  std::shared_mutex m_user_map_mutex;
 
   std::unordered_map<std::shared_ptr<Connection<asio::ip::tcp::socket>>, UserID>
       m_connection_map;
@@ -54,7 +57,8 @@ struct ManagerImpl {
   SQLDBProcess m_sqlProcess;
 
   // Network
-  Network m_network;
+  std::pmr::synchronized_pool_resource m_network_sync_pool;
+  Network m_network{&m_network_sync_pool};
 };
 
 Manager::Manager() : m_impl(std::make_unique<ManagerImpl>()) {}
@@ -105,7 +109,7 @@ GroupID Manager::addPrivateRoom(const UserID &user1_id,
   m_impl->m_privateRoom_map[privateRoom_id] = std::allocate_shared<PrivateRoom>(
       std::pmr::polymorphic_allocator<PrivateRoom>(
           &m_impl->m_privateRoom_sync_pool),
-      user1_id, user2_id, true);
+      user1_id, user2_id, true, &m_impl->m_privateRoom_sync_pool);
   m_impl->m_userID_to_privateRoomID_map[{user1_id, user2_id}] = privateRoom_id;
 
   return privateRoom_id;
@@ -119,15 +123,14 @@ GroupID Manager::getPrivateRoomId(const UserID &user1_id,
     return GroupID(
         m_impl->m_userID_to_privateRoomID_map.find({user1_id, user2_id})
             ->second);
-  } else if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
-             m_impl->m_userID_to_privateRoomID_map.cend()) {
+  }
+  if (m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id}) !=
+      m_impl->m_userID_to_privateRoomID_map.cend()) {
     return GroupID(
         m_impl->m_userID_to_privateRoomID_map.find({user2_id, user1_id})
             ->second);
-  } else {
-    throw std::system_error(
-        make_error_code(qls_errc::private_room_not_existed));
   }
+  throw std::system_error(make_error_code(qls_errc::private_room_not_existed));
 }
 
 bool Manager::hasPrivateRoom(const GroupID &private_room_id) const {
@@ -204,7 +207,7 @@ GroupID Manager::addGroupRoom(const UserID &operator_user_id) {
   m_impl->m_groupRoom_map[group_room_id] = std::allocate_shared<GroupRoom>(
       std::pmr::polymorphic_allocator<GroupRoom>(
           &m_impl->m_groupRoom_sync_pool),
-      group_room_id, operator_user_id, true);
+      group_room_id, operator_user_id, true, &m_impl->m_groupRoom_sync_pool);
 
   return group_room_id;
 }
@@ -254,7 +257,7 @@ std::shared_ptr<User> Manager::addNewUser() {
       newUserId,
       std::allocate_shared<User>(
           std::pmr::polymorphic_allocator<User>(&m_impl->m_user_sync_pool),
-          newUserId, true));
+          newUserId, true, &m_impl->m_user_sync_pool));
   return iter->second;
 }
 
@@ -273,9 +276,12 @@ std::shared_ptr<User> Manager::getUser(const UserID &user_id) const {
   return itor->second;
 }
 
-std::unordered_map<UserID, std::shared_ptr<User>> Manager::getUserList() const {
+void Manager::getUserList(
+    const std::function<void(
+        const std::pmr::unordered_map<UserID, std::shared_ptr<qls::User>> &)>
+        &func) const {
   std::shared_lock lock(m_impl->m_user_map_mutex);
-  return m_impl->m_user_map;
+  std::invoke(func, m_impl->m_user_map);
 }
 
 void Manager::registerConnection(

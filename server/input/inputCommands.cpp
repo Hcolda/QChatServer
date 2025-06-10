@@ -26,14 +26,14 @@ bool stop_command::execute() {
 CommandInfo stop_command::registerCommand() { return {{}, "stop server"}; }
 
 bool show_user_command::execute() {
-  auto list = serverManager.getUserList();
-  serverLogger.info("User data list: \n");
-  for (auto i = list.begin(); i != list.end(); i++) {
-    serverLogger.info(std::format("user id: {}, name: {}\n",
-                                  i->first.getOriginValue(),
-                                  i->second->getUserName()));
-  }
-
+  serverManager.getUserList([](const auto &map) {
+    serverLogger.info("User data list: \n");
+    for (const auto &[user_id, user] : map) {
+      serverLogger.info(std::format("user id: {}, name: {}\n",
+                                    user_id.getOriginValue(),
+                                    user->getUserName()));
+    }
+  });
   return true;
 }
 

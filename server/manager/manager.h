@@ -1,6 +1,7 @@
 #ifndef MANAGER_H
 #define MANAGER_H
 
+#include <functional>
 #include <memory>
 #include <unordered_map>
 
@@ -146,8 +147,10 @@ public:
    *
    * @return Unordered map of user IDs to user shared pointers.
    */
-  [[nodiscard]] std::unordered_map<UserID, std::shared_ptr<qls::User>>
-  getUserList() const;
+  void getUserList(
+      const std::function<void(
+          const std::pmr::unordered_map<UserID, std::shared_ptr<qls::User>> &)>
+          &func) const;
 
   /**
    * @brief Registers a socket with an optional user ID.

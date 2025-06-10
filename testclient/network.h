@@ -5,7 +5,7 @@
 #include <memory>
 #include <string>
 
-#include <dataPackage.h>
+#include <dataPackage.hpp>
 
 namespace qls {
 using ReceiveStdStringFunction = std::function<void(std::string)>;

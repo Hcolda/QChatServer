@@ -3,6 +3,7 @@
 
 #include <asio.hpp>
 #include <chrono>
+#include <memory_resource>
 #include <string_view>
 #include <vector>
 
@@ -27,7 +28,7 @@ public:
   };
 
   GroupRoom(const GroupID &group_id, const UserID &administrator,
-            bool is_create);
+            bool is_create, std::pmr::memory_resource *memory_resouce);
   GroupRoom(const GroupRoom &) = delete;
   GroupRoom(GroupRoom &&) = delete;
   ~GroupRoom() noexcept;
@@ -45,16 +46,18 @@ public:
              const std::chrono::utc_clock::time_point &to);
 
   [[nodiscard]] bool hasUser(const UserID &user_id) const;
-  [[nodiscard]] std::unordered_map<UserID, UserDataStructure>
-  getUserList() const;
+  void
+  getUserList(const std::function<
+              void(const std::pmr::unordered_map<UserID, UserDataStructure> &)>
+                  &func) const;
   [[nodiscard]] std::string getUserNickname(const UserID &user_id) const;
   [[nodiscard]] long long getUserGroupLevel(const UserID &user_id) const;
-  [[nodiscard]] std::unordered_map<UserID, PermissionType>
-  getUserPermissionList() const;
+  void getUserPermissionList(
+      const std::function<
+          void(const std::pmr::unordered_map<UserID, PermissionType> &)> &func)
+      const;
   [[nodiscard]] UserID getAdministrator() const;
   [[nodiscard]] GroupID getGroupID() const;
-  [[nodiscard]] std::vector<UserID> getDefaultUserList() const;
-  [[nodiscard]] std::vector<UserID> getOperatorList() const;
 
   [[nodiscard]] bool muteUser(const UserID &executor_id, const UserID &user_id,
                               const std::chrono::minutes &mins);

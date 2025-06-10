@@ -5,7 +5,7 @@
 #include <memory>
 
 #include "connection.hpp"
-#include "dataPackage.h"
+#include "dataPackage.hpp"
 
 namespace qls {
 

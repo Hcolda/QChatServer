@@ -255,14 +255,16 @@ asio::awaitable<qjson::JObject> JsonMessageProcessImpl::processJsonMessage(
     // This function is used to execute the command asynchronously
     auto async_invoke = [](auto executor,
                            std::shared_ptr<JsonMessageCommand> command_ptr,
-                           UserID user_id, qjson::JObject param, auto &&token) {
+                           const UserID &user_id, qjson::JObject param,
+                           auto &&token) {
       return asio::async_initiate<decltype(token),
                                   void(std::error_code, qjson::JObject)>(
           [](auto handler, auto executor,
-             std::shared_ptr<JsonMessageCommand> command_ptr,
-             const UserID &user_id, qjson::JObject param) {
+             std::shared_ptr<JsonMessageCommand> command_ptr, UserID user_id,
+             qjson::JObject param) {
             asio::post(executor, [handler = std::move(handler),
-                                  command_ptr = std::move(command_ptr), user_id,
+                                  command_ptr = std::move(command_ptr),
+                                  user_id = std::move(user_id),
                                   param = std::move(param)]() mutable {
               try {
                 handler({}, command_ptr->execute(user_id, std::move(param)));

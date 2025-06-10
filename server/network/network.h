@@ -37,7 +37,7 @@ inline std::string showBinaryData(std::string_view data);
  */
 class Network final {
 public:
-  Network();
+  Network(std::pmr::memory_resource *memory_resource);
   Network(const Network &) = delete;
   Network(Network &&) = delete;
   ~Network();
@@ -83,14 +83,14 @@ private:
   std::string m_host;    ///< Host address.
   unsigned short m_port; ///< Port number.
   std::unique_ptr<std::thread[]>
-      m_threads;                 ///< Thread pool for handling connections.
-  const int m_thread_num;        ///< Number of threads.
-  asio::io_context m_io_context; ///< IO context for ASIO.
+      m_threads;                    ///< Thread pool for handling connections.
+  const std::uint32_t m_thread_num; ///< Number of threads.
+  asio::io_context m_io_context;    ///< IO context for ASIO.
   std::shared_ptr<asio::ssl::context>
       m_ssl_context_ptr; ///< Shared pointer to the SSL context.
   RateLimiter m_rateLimiter;
 
-  inline static std::pmr::synchronized_pool_resource socket_sync_pool;
+  std::pmr::memory_resource *m_memory_resource;
 };
 
 } // namespace qls

@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 #include <memory>
+#include <memory_resource>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -54,7 +55,8 @@ public:
    * @param user_id The ID of the user.
    * @param is_create Flag indicating if user is being created.
    */
-  User(const UserID &user_id, bool is_create);
+  User(const UserID &user_id, bool is_create,
+       std::pmr::memory_resource *resouce);
 
   User(const User &) = delete; // Copy constructor deleted
   User(User &&) = delete;      // Move constructor deleted

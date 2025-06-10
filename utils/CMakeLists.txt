@@ -17,8 +17,7 @@ if(MINGW)
     find_library(WS2_32_LIBRARY ws2_32)
 endif()
 
-add_library(Utils 
-    network/dataPackage.cpp
+add_library(Utils
     error/qls_error.cpp
     parser/Ini.cpp
     parser/Json.cpp)

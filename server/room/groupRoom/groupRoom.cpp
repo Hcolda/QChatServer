@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <format>
+#include <functional>
 #include <map>
 #include <memory>
 #include <memory_resource>
@@ -19,8 +20,6 @@ extern qls::Manager serverManager;
 
 namespace qls {
 
-static std::pmr::synchronized_pool_resource local_sync_group_room_pool;
-
 struct GroupRoomImpl {
   GroupID m_group_id;
   UserID m_administrator_user_id;
@@ -28,32 +27,41 @@ struct GroupRoomImpl {
   std::atomic<bool> m_can_be_used;
   GroupPermission m_permission;
 
-  std::unordered_map<UserID, GroupRoom::UserDataStructure> m_user_id_map;
+  std::pmr::unordered_map<UserID, GroupRoom::UserDataStructure> m_user_id_map;
   std::shared_mutex m_user_id_map_mutex;
 
-  std::unordered_map<UserID, std::pair<std::chrono::utc_clock::time_point,
-                                       std::chrono::minutes>>
+  std::pmr::unordered_map<UserID, std::pair<std::chrono::utc_clock::time_point,
+                                            std::chrono::minutes>>
       m_muted_user_map;
   std::shared_mutex m_muted_user_map_mutex;
 
-  std::map<std::chrono::utc_clock::time_point, MessageStructure> m_message_map;
+  std::pmr::map<std::chrono::utc_clock::time_point, MessageStructure>
+      m_message_map;
   std::shared_mutex m_message_map_mutex;
 
-  asio::steady_timer m_clear_timer{
-      serverManager.getServerNetwork().get_io_context()};
+  asio::steady_timer m_clear_timer;
+
+  std::pmr::memory_resource *m_local_memory_resource;
+
+  GroupRoomImpl(std::pmr::memory_resource *memory_resource)
+      : m_local_memory_resource(memory_resource),
+        m_user_id_map(memory_resource), m_muted_user_map(memory_resource),
+        m_message_map(memory_resource), m_permission(memory_resource),
+        m_clear_timer(serverManager.getServerNetwork().get_io_context()) {}
 };
 
 void GroupRoomImplDeleter::operator()(GroupRoomImpl *gri) {
-  std::pmr::polymorphic_allocator<GroupRoomImpl>(&local_sync_group_room_pool)
+  std::pmr::memory_resource *memory_resource = gri->m_local_memory_resource;
+  std::pmr::polymorphic_allocator<GroupRoomImpl>(memory_resource)
       .delete_object(gri);
 }
 
 // GroupRoom
 GroupRoom::GroupRoom(const GroupID &group_id, const UserID &administrator,
-                     bool is_create)
-    : TextDataRoom(&local_sync_group_room_pool),
-      m_impl(std::pmr::polymorphic_allocator<>(&local_sync_group_room_pool)
-                 .new_object<GroupRoomImpl>()) {
+                     bool is_create, std::pmr::memory_resource *memory_resource)
+    : TextDataRoom(memory_resource),
+      m_impl(std::pmr::polymorphic_allocator<>(memory_resource)
+                 .new_object<GroupRoomImpl>(memory_resource)) {
   m_impl->m_group_id = group_id;
   m_impl->m_administrator_user_id = administrator;
 
@@ -298,16 +306,17 @@ bool GroupRoom::hasUser(const UserID &user_id) const {
   std::shared_lock lock(m_impl->m_user_id_map_mutex);
   return m_impl->m_user_id_map.find(user_id) != m_impl->m_user_id_map.cend();
 }
-
-std::unordered_map<UserID, GroupRoom::UserDataStructure>
-GroupRoom::getUserList() const {
+void GroupRoom::getUserList(
+    const std::function<
+        void(const std::pmr::unordered_map<UserID, UserDataStructure> &)> &func)
+    const {
   if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::group_room_unable_to_use));
   }
 
   std::shared_lock lock(m_impl->m_user_id_map_mutex);
-  return m_impl->m_user_id_map;
+  std::invoke(func, m_impl->m_user_id_map);
 }
 
 std::string GroupRoom::getUserNickname(const UserID &user_id) const {
@@ -342,14 +351,15 @@ long long GroupRoom::getUserGroupLevel(const UserID &user_id) const {
   return itor->second.level.getValue();
 }
 
-std::unordered_map<UserID, PermissionType>
-GroupRoom::getUserPermissionList() const {
+void GroupRoom::getUserPermissionList(
+    const std::function<void(
+        const std::pmr::unordered_map<UserID, PermissionType> &)> &func) const {
   if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::group_room_unable_to_use));
   }
 
-  return m_impl->m_permission.getUserPermissionList();
+  m_impl->m_permission.getUserPermissionList(func);
 }
 
 UserID GroupRoom::getAdministrator() const {
@@ -394,22 +404,6 @@ void GroupRoom::setAdministrator(const UserID &user_id) {
 }
 
 GroupID GroupRoom::getGroupID() const { return m_impl->m_group_id; }
-
-std::vector<UserID> GroupRoom::getDefaultUserList() const {
-  if (!m_impl->m_can_be_used) {
-    throw std::system_error(
-        make_error_code(qls_errc::group_room_unable_to_use));
-  }
-  return m_impl->m_permission.getDefaultUserList();
-}
-
-std::vector<UserID> GroupRoom::getOperatorList() const {
-  if (!m_impl->m_can_be_used) {
-    throw std::system_error(
-        make_error_code(qls_errc::group_room_unable_to_use));
-  }
-  return m_impl->m_permission.getOperatorList();
-}
 
 bool GroupRoom::muteUser(const UserID &executor_id, const UserID &user_id,
                          const std::chrono::minutes &mins) {

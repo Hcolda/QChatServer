@@ -2,10 +2,11 @@
 #define GROUP_PERMISSION_H
 
 #include <cstdint>
-#include <shared_mutex>
+#include <functional>
+#include <memory>
+#include <memory_resource>
 #include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "definition.hpp"
 #include "userid.hpp"
@@ -26,8 +27,8 @@ enum class PermissionType : std::int8_t {
  */
 class GroupPermission final {
 public:
-  GroupPermission() = default;
-  ~GroupPermission() noexcept = default;
+  GroupPermission(std::pmr::memory_resource *memory_resource);
+  ~GroupPermission() noexcept;
 
   /**
    * @brief Modifies the permission type for a specific permission.
@@ -56,9 +57,11 @@ public:
    * @return std::unordered_map<std::string, PermissionType> Map of permissions
    * and their types.
    */
-  [[nodiscard]] std::unordered_map<std::string, PermissionType, string_hash,
-                                   std::equal_to<>>
-  getPermissionList() const;
+  void getPermissionList(
+      const std::function<void(
+          const std::pmr::unordered_map<std::string, PermissionType,
+                                        string_hash, std::equal_to<>> &)> &func)
+      const;
 
   /**
    * @brief Modifies the permission type for a specific user.
@@ -96,39 +99,18 @@ public:
    * @return std::unordered_map<UserID, PermissionType> Map of users and their
    * permission types.
    */
-  [[nodiscard]] std::unordered_map<UserID, PermissionType>
-  getUserPermissionList() const;
-
-  /**
-   * @brief Retrieves a list of users with default permissions.
-   * @return std::vector<UserID> List of user IDs.
-   */
-  [[nodiscard]] std::vector<UserID> getDefaultUserList() const;
-
-  /**
-   * @brief Retrieves a list of users with operator permissions.
-   * @return std::vector<UserID> List of user IDs.
-   */
-  [[nodiscard]] std::vector<UserID> getOperatorList() const;
-
-  /**
-   * @brief Retrieves a list of users with administrator permissions.
-   * @return std::vector<UserID> List of user IDs.
-   */
-  [[nodiscard]] std::vector<UserID> getAdministratorList() const;
+  void getUserPermissionList(
+      const std::function<
+          void(const std::pmr::unordered_map<UserID, PermissionType> &)> &func)
+      const;
 
 private:
-  std::unordered_map<std::string, PermissionType, string_hash, std::equal_to<>>
-      m_permission_map; ///< Map of permissions and their types
-  mutable std::shared_mutex
-      m_permission_map_mutex; ///< Mutex for thread-safe access to permission
-                              ///< map
-
-  std::unordered_map<UserID, PermissionType>
-      m_user_permission_map; ///< Map of users and their permission types
-  mutable std::shared_mutex
-      m_user_permission_map_mutex; ///< Mutex for thread-safe access to user
-                                   ///< permission map
+  struct GroupPermissionImpl;
+  struct GroupPermissionImplDeleter {
+    std::pmr::memory_resource *memory_resource;
+    void operator()(GroupPermissionImpl *);
+  };
+  std::unique_ptr<GroupPermissionImpl, GroupPermissionImplDeleter> m_impl;
 };
 
 } // namespace qls

@@ -1,4 +1,3 @@
-# 格式化所有 C++ 文件 (排除指定目录)
 Get-ChildItem -Recurse -Include *.cpp,*.h,*.hpp,*.cxx,*.cc |
 Where-Object {
     $_.FullName -notmatch '\\build\\' -and

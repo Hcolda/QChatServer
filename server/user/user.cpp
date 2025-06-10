@@ -3,13 +3,17 @@
 #include <algorithm>
 #include <asio.hpp>
 #include <chrono>
+#include <functional>
 #include <iterator>
 #include <memory_resource>
 #include <random>
 #include <ranges>
+#include <unordered_map>
+#include <utility>
 
 #include "Json.h"
-#include "dataPackage.h"
+#include "dataPackage.hpp"
+#include "groupRoom.h"
 #include "groupid.hpp"
 #include "logger.hpp"
 #include "manager.h"
@@ -24,8 +28,9 @@ extern qls::Manager serverManager;
 
 namespace qls {
 
-static std::pmr::synchronized_pool_resource local_user_sync_pool;
 struct UserImpl {
+  std::pmr::memory_resource *m_local_memory_resouce;
+
   UserID user_id;            ///< User ID
   std::string user_name;     ///< User name
   long long registered_time; ///< Time when user registered
@@ -80,11 +85,6 @@ struct UserImpl {
   }
 };
 
-/**
- * @brief Send json message to user
- * @param user_id The id of user
- * @param json json type message
- */
 template <class T>
   requires requires(T json_value) { qjson::JObject(json_value); }
 static inline void sendJsonToUser(const UserID &user_id, T &&json) {
@@ -94,23 +94,30 @@ static inline void sendJsonToUser(const UserID &user_id, T &&json) {
   serverManager.getUser(user_id)->notifyAll(pack->packageToString());
 }
 
-template <class T, std::input_iterator It, std::sentinel_for<It> S>
-  requires requires(T json_value) { qjson::JObject(json_value); }
-static inline void sendJsonToUser(It begin, S end, T &&json) {
+template <class T, class Func, std::input_iterator It, std::sentinel_for<It> S>
+  requires requires(T json_value) {
+    qjson::JObject(json_value);
+  } && requires(Func func, It iter) {
+    qls::UserID{std::invoke(std::declval<Func>(), std::as_const(*iter))};
+  }
+static inline void sendJsonToUser(It begin, S end, T &&json, Func &&func) {
   auto pack = DataPackage::makePackage(
       qjson::JObject(std::forward<T>(json)).to_string());
   pack->type = DataPackage::Text;
   std::ranges::for_each(std::move(begin), std::move(end),
-                        [pack = std::move(pack)](const qls::UserID &user_id) {
-                          serverManager.getUser(user_id)->notifyAll(
-                              pack->packageToString());
+                        [pack = std::move(pack),
+                         func = std::forward<Func>(func)](const auto &argu) {
+                          serverManager.getUser(std::invoke(func, argu))
+                              ->notifyAll(pack->packageToString());
                         });
 }
 
-User::User(const UserID &user_id, bool is_create)
+User::User(const UserID &user_id, bool is_create,
+           std::pmr::memory_resource *resouce)
     : // allocate and construct the pointer of implement
-      m_impl(std::pmr::polymorphic_allocator<>(&local_user_sync_pool)
-                 .new_object<UserImpl>()) {
+      m_impl(
+          std::pmr::polymorphic_allocator<>(resouce).new_object<UserImpl>()) {
+  m_impl->m_local_memory_resouce = resouce;
   m_impl->user_id = user_id;
   m_impl->age = 0;
   m_impl->registered_time =
@@ -480,8 +487,21 @@ bool User::removeGroup(const GroupID &group_id) {
     return false;
   }
 
-  auto user_list = serverManager.getGroupRoom(group_id)->getUserList();
+  qjson::JObject json;
+  json["type"] = "group_removed";
+  json["data"]["group_id"] = group_id.getOriginValue();
+
   // notify all users in the room...
+  serverManager.getGroupRoom(group_id)->getUserList(
+      [json = std::move(json), self_id](
+          const std::pmr::unordered_map<UserID, GroupRoom::UserDataStructure>
+              &map) mutable {
+        sendJsonToUser(self_id, qjson::JObject(json));
+        sendJsonToUser(
+            map.begin(), map.end(), std::move(json),
+            [](const std::pair<const UserID, GroupRoom::UserDataStructure>
+                   &pair) { return pair.first; });
+      });
 
   try {
     serverManager.removeGroupRoom(group_id);
@@ -507,10 +527,18 @@ bool User::leaveGroup(const GroupID &group_id) {
   json["type"] = "group_leave_member";
   json["data"]["user_id"] = self_id.getOriginValue();
   json["data"]["group_id"] = group_id.getOriginValue();
+  UserID admin = group->getAdministrator();
 
-  auto list = group->getOperatorList();
-  sendJsonToUser(group->getAdministrator(), qjson::JObject(json));
-  sendJsonToUser(list.begin(), list.end(), std::move(json));
+  group->getUserList(
+      [json = std::move(json), admin = std::move(admin)](
+          const std::pmr::unordered_map<UserID, GroupRoom::UserDataStructure>
+              &map) mutable {
+        sendJsonToUser(admin, qjson::JObject(json));
+        sendJsonToUser(
+            map.begin(), map.end(), std::move(json),
+            [](const std::pair<const UserID, GroupRoom::UserDataStructure>
+                   &pair) { return pair.first; });
+      });
   return true;
 }
 
@@ -587,7 +615,8 @@ void User::removeConnection(
 void User::notifyAll(std::string_view data) {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   std::shared_ptr<std::string> buffer_ptr(std::allocate_shared<std::string>(
-      std::pmr::polymorphic_allocator<std::string>(&local_user_sync_pool),
+      std::pmr::polymorphic_allocator<std::string>(
+          m_impl->m_local_memory_resouce),
       data));
   for (const auto &[connection_ptr, type] : m_impl->m_connection_map) {
     asio::async_write(connection_ptr->socket, asio::buffer(*buffer_ptr),
@@ -605,7 +634,8 @@ void User::notifyAll(std::string_view data) {
 void User::notifyWithType(DeviceType type, std::string_view data) {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   std::shared_ptr<std::string> buffer_ptr(std::allocate_shared<std::string>(
-      std::pmr::polymorphic_allocator<std::string>(&local_user_sync_pool),
+      std::pmr::polymorphic_allocator<std::string>(
+          m_impl->m_local_memory_resouce),
       data));
   for (const auto &[connection_ptr, dtype] : m_impl->m_connection_map) {
     if (dtype == type) {
@@ -624,7 +654,8 @@ void User::notifyWithType(DeviceType type, std::string_view data) {
 }
 
 void UserImplDeleter::operator()(UserImpl *user_impl) {
-  std::pmr::polymorphic_allocator<UserImpl>(&local_user_sync_pool)
+  std::pmr::memory_resource *memory_resouce = user_impl->m_local_memory_resouce;
+  std::pmr::polymorphic_allocator<UserImpl>(memory_resouce)
       .delete_object(user_impl);
 }
 

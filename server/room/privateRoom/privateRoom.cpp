@@ -15,8 +15,6 @@
 
 extern qls::Manager serverManager;
 
-static std::pmr::synchronized_pool_resource local_sync_private_room_pool;
-
 namespace qls {
 
 struct PrivateRoomImpl {
@@ -24,25 +22,34 @@ struct PrivateRoomImpl {
 
   std::atomic<bool> m_can_be_used;
 
-  std::map<std::chrono::utc_clock::time_point, MessageStructure> m_message_map;
+  std::pmr::map<std::chrono::utc_clock::time_point, MessageStructure>
+      m_message_map;
   std::shared_mutex m_message_map_mutex;
 
-  asio::steady_timer m_clear_timer{
-      serverManager.getServerNetwork().get_io_context()};
+  asio::steady_timer m_clear_timer;
+
+  std::pmr::memory_resource *m_local_memory_resouce;
+
+  PrivateRoomImpl(const UserID &user_id_1, const UserID &user_id_2,
+                  std::pmr::memory_resource *memory_resouce)
+      : m_user_id_1(user_id_1), m_user_id_2(user_id_2),
+        m_local_memory_resouce(memory_resouce), m_message_map(memory_resouce),
+        m_clear_timer(serverManager.getServerNetwork().get_io_context()) {}
 };
 
 void PrivateRoomImplDeleter::operator()(PrivateRoomImpl *pri) noexcept {
-  std::pmr::polymorphic_allocator<PrivateRoomImpl>(
-      &local_sync_private_room_pool)
-      .delete_object(pri);
+  std::pmr::polymorphic_allocator<>(memory_resource).delete_object(pri);
 }
 
 // PrivateRoom
 PrivateRoom::PrivateRoom(const UserID &user_id_1, const UserID &user_id_2,
-                         bool is_create)
-    : TextDataRoom(&local_sync_private_room_pool),
-      m_impl(std::pmr::polymorphic_allocator<>(&local_sync_private_room_pool)
-                 .new_object<PrivateRoomImpl>(user_id_1, user_id_2)) {
+                         bool is_create,
+                         std::pmr::memory_resource *memory_resouce)
+    : TextDataRoom(memory_resouce),
+      m_impl(std::pmr::polymorphic_allocator<>(memory_resouce)
+                 .new_object<PrivateRoomImpl>(user_id_1, user_id_2,
+                                              memory_resouce),
+             {memory_resouce}) {
   // if (is_create) {
   //   // sql 创建private room
   //   m_impl->m_can_be_used = true;

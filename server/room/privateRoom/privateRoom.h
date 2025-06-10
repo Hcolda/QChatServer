@@ -3,6 +3,7 @@
 
 #include <chrono>
 #include <memory>
+#include <memory_resource>
 #include <string_view>
 
 #include "room.h"
@@ -12,6 +13,7 @@ namespace qls {
 
 struct PrivateRoomImpl;
 struct PrivateRoomImplDeleter {
+  std::pmr::memory_resource *memory_resource;
   void operator()(PrivateRoomImpl *pri) noexcept;
 };
 
@@ -20,7 +22,8 @@ struct PrivateRoomImplDeleter {
  */
 class PrivateRoom : public TextDataRoom {
 public:
-  PrivateRoom(const UserID &user_id_1, const UserID &user_id_2, bool is_create);
+  PrivateRoom(const UserID &user_id_1, const UserID &user_id_2, bool is_create,
+              std::pmr::memory_resource *memory_resouce);
   PrivateRoom(const PrivateRoom &) = delete;
   PrivateRoom(PrivateRoom &&) = delete;
 

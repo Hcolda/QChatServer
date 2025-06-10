@@ -6,7 +6,7 @@
 #include <system_error>
 
 #include "JsonMsgProcess.h"
-#include "dataPackage.h"
+#include "dataPackage.hpp"
 #include "manager.h"
 #include "qls_error.h"
 #include "returnStateMessage.hpp"
@@ -43,10 +43,11 @@ asio::awaitable<void>
 SocketService::process(std::string_view data,
                        std::shared_ptr<qls::DataPackage> pack) {
   auto async_send =
-      [this](std::string_view data, long long requestID = 0,
+      [this](std::string_view data, DataPackage::RequestIDType requestID = 0,
              DataPackage::DataPackageType type = DataPackage::Unknown,
-             int sequence = 0,
-             int sequenceSize = 1) -> asio::awaitable<std::size_t> {
+             DataPackage::LengthType sequence = 0,
+             DataPackage::LengthType sequenceSize =
+                 1) -> asio::awaitable<std::size_t> {
     auto pack = qls::DataPackage::makePackage(data);
     pack->requestID = requestID;
     pack->sequence = sequence;

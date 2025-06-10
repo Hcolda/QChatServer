@@ -19,7 +19,7 @@
 #include <asio/ssl.hpp>
 #include <logger.hpp>
 
-#include <dataPackage.h>
+#include <dataPackage.hpp>
 #include <package.hpp>
 
 namespace qls {

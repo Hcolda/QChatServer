@@ -7,11 +7,12 @@
 #include <chrono>
 #include <cstdint>
 #include <logger.hpp>
+#include <memory_resource>
 #include <string>
 #include <system_error>
 
 #include "connection.hpp"
-#include "dataPackage.h"
+#include "dataPackage.hpp"
 #include "definition.hpp"
 #include "manager.h"
 #include "package.hpp"
@@ -35,12 +36,9 @@ using namespace asio;
 using namespace experimental::awaitable_operators;
 using namespace std::chrono_literals;
 
-Network::Network()
-    : m_port(port_num),
-      m_thread_num(
-          (thread_num > static_cast<int>(std::thread::hardware_concurrency())
-               ? thread_num
-               : static_cast<int>(std::thread::hardware_concurrency()))) {
+Network::Network(std::pmr::memory_resource *memory_resource)
+    : m_port(port_num), m_thread_num(std::thread::hardware_concurrency()),
+      m_memory_resource(memory_resource) {
   m_threads =
       std::make_unique<std::thread[]>(static_cast<std::size_t>(m_thread_num));
 }
@@ -113,7 +111,7 @@ awaitable<void> Network::process(ip::tcp::socket origin_socket) {
   std::shared_ptr<Connection<asio::ip::tcp::socket>> connection_ptr =
       std::allocate_shared<Connection<asio::ip::tcp::socket>>(
           std::pmr::polymorphic_allocator<Connection<asio::ip::tcp::socket>>(
-              &socket_sync_pool),
+              m_memory_resource),
           std::move(origin_socket), *m_ssl_context_ptr);
   // String address for data processing
   std::string addr = socket2ip(connection_ptr->socket);
@@ -134,7 +132,7 @@ awaitable<void> Network::process(ip::tcp::socket origin_socket) {
     SocketService socketService(connection_ptr);
     long long heart_beat_times = 0;
     auto heart_beat_time_point = std::chrono::steady_clock::now();
-    std::pmr::string data_buffer(&socket_sync_pool);
+    std::pmr::string data_buffer(m_memory_resource);
     while (true) {
       try {
         do {
