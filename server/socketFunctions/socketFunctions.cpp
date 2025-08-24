@@ -39,19 +39,16 @@ SocketService::get_connection_ptr() const {
   return m_impl->m_connection_ptr;
 }
 
-asio::awaitable<void>
-SocketService::process(std::string_view data,
-                       std::shared_ptr<qls::DataPackage> pack) {
+asio::awaitable<void> SocketService::process(string_param data,
+                                             DataPackagePtr pack) {
   auto async_send =
-      [this](std::string_view data, DataPackage::RequestIDType requestID = 0,
+      [this](string_param data, DataPackage::RequestIDType requestID = 0,
              DataPackage::DataPackageType type = DataPackage::Unknown,
              DataPackage::LengthType sequence = 0,
              DataPackage::LengthType sequenceSize =
                  1) -> asio::awaitable<std::size_t> {
-    auto pack = qls::DataPackage::makePackage(data);
-    pack->requestID = requestID;
-    pack->sequence = sequence;
-    pack->type = type;
+    auto pack = qls::DataPackage::makePackage(
+        std::move(data), type, sequenceSize, sequence, requestID);
     // Send data to the connection
     co_return co_await asio::async_write(
         m_impl->m_connection_ptr->socket, asio::buffer(pack->packageToString()),
@@ -72,7 +69,7 @@ SocketService::process(std::string_view data,
   case DataPackage::Text:
     // json data type
     co_await async_send((co_await m_impl->m_jsonProcess.processJsonMessage(
-                             qjson::to_json(data), *this))
+                             qjson::to_json(std::move(data)), *this))
                             .to_string(),
                         pack->requestID, DataPackage::Text);
     co_return;

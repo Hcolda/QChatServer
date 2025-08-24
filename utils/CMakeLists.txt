@@ -39,3 +39,5 @@ target_link_libraries(Utils PUBLIC
 if(MINGW)
     target_link_libraries(Utils PUBLIC wsock32 ws2_32)
 endif()
+
+target_compile_definitions(Utils PUBLIC USE_QLS_STRING_PARAM)

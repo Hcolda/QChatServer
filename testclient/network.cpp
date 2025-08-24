@@ -128,8 +128,7 @@ struct NetworkImpl {
   std::mutex requestID_mt_mutex;
   std::unordered_set<long long> requestID_set;
   std::shared_mutex requestID_set_mutex;
-  std::unordered_map<long long,
-                     std::function<void(std::shared_ptr<DataPackage>)>>
+  std::unordered_map<long long, std::function<void(DataPackagePtr)>>
       requestID2Function_map;
   std::shared_mutex requestID2Function_map_mutex;
 
@@ -254,17 +253,15 @@ void Network::send_data(const std::string &data) {
                     [wrapper = std::move(wrapper)](auto, auto) {});
 }
 
-std::future<std::shared_ptr<DataPackage>>
-Network::send_data_with_result_n_option(
+std::future<DataPackagePtr> Network::send_data_with_result_n_option(
     const std::string &data,
-    const std::function<void(std::shared_ptr<DataPackage> &)>
-        &option_function) {
+    const std::function<void(DataPackagePtr &)> &option_function) {
   if (!m_network_impl->is_receiving)
     throw std::runtime_error("Socket is not able to use");
-  std::shared_ptr<std::promise<std::shared_ptr<DataPackage>>> future_result =
-      std::make_shared<std::promise<std::shared_ptr<DataPackage>>>();
+  std::shared_ptr<std::promise<DataPackagePtr>> future_result =
+      std::make_shared<std::promise<DataPackagePtr>>();
   send_data_with_option(data, option_function,
-                        [future_result](std::shared_ptr<DataPackage> pack) {
+                        [future_result](DataPackagePtr pack) {
                           future_result->set_value(std::move(pack));
                         });
   return future_result->get_future();
@@ -272,9 +269,8 @@ Network::send_data_with_result_n_option(
 
 long long Network::send_data_with_option(
     const std::string &origin_data,
-    const std::function<void(std::shared_ptr<DataPackage> &)> &option_function,
-    const std::function<void(std::shared_ptr<DataPackage>)>
-        &callback_function) {
+    const std::function<void(DataPackagePtr &)> &option_function,
+    const std::function<void(DataPackagePtr)> &callback_function) {
   if (!m_network_impl->is_receiving)
     throw std::runtime_error("Socket is not able to use");
   if (!option_function || !callback_function)

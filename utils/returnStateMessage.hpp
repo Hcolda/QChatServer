@@ -4,6 +4,8 @@
 #include <Json.h>
 #include <string_view>
 
+#include "string_param.hpp"
+
 namespace qls {
 
 /**
@@ -12,13 +14,13 @@ namespace qls {
  * @param msg The message associated with the state.
  * @return qjson::JObject representing the constructed JSON object.
  */
-[[nodiscard]] inline qjson::JObject makeMessage(std::string_view state,
-                                                std::string_view msg) {
+[[nodiscard]] inline qjson::JObject makeMessage(string_param state,
+                                                string_param msg) {
   qjson::JObject json; // Create a JSON object
 
   // Set "state" and "message" fields in the JSON object
-  json["state"] = state;
-  json["message"] = msg;
+  json["state"] = std::string_view(state);
+  json["message"] = std::string_view(msg);
 
   return json; // Return the constructed JSON object
 }
@@ -28,9 +30,10 @@ namespace qls {
  * @param msg The error message.
  * @return qjson::JObject representing the error message JSON object.
  */
-[[nodiscard]] inline qjson::JObject makeErrorMessage(std::string_view msg) {
-  return makeMessage("error",
-                     msg); // Use makeMessage to create an error JSON object
+[[nodiscard]] inline qjson::JObject makeErrorMessage(string_param msg) {
+  return makeMessage(
+      "error",
+      std::move(msg)); // Use makeMessage to create an error JSON object
 }
 
 /**
@@ -38,9 +41,10 @@ namespace qls {
  * @param msg The success message.
  * @return qjson::JObject representing the success message JSON object.
  */
-[[nodiscard]] inline qjson::JObject makeSuccessMessage(std::string_view msg) {
-  return makeMessage("success",
-                     msg); // Use makeMessage to create a success JSON object
+[[nodiscard]] inline qjson::JObject makeSuccessMessage(string_param msg) {
+  return makeMessage(
+      "success",
+      std::move(msg)); // Use makeMessage to create a success JSON object
 }
 
 } // namespace qls

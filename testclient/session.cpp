@@ -13,10 +13,10 @@ struct SessionImpl {
 };
 
 static inline qjson::JObject makeJsonFunctionDataPackage(
-    std::string_view functionName,
+    string_param functionName,
     std::vector<std::pair<std::string, qjson::JObject>> list) {
   qjson::JObject json(qjson::JValueType::JDict);
-  json["function"] = functionName;
+  json["function"] = std::string_view(functionName);
   json["parameters"] = qjson::JObject(qjson::JValueType::JDict);
   for (auto [parameterName, parameterValue] : list) {
     json["parameters"][parameterName] = parameterValue;
@@ -25,15 +25,15 @@ static inline qjson::JObject makeJsonFunctionDataPackage(
 }
 
 static inline qjson::JObject
-makeJsonFunctionDataPackage(std::string_view functionName) {
+makeJsonFunctionDataPackage(string_param functionName) {
   qjson::JObject json(qjson::JValueType::JDict);
-  json["function"] = std::string(functionName);
+  json["function"] = std::string_view(functionName);
   json["parameters"] = qjson::JObject(qjson::JValueType::JDict);
   return json;
 }
 
 static inline qjson::JObject
-readJsonFunctionDataPackage(const std::shared_ptr<qls::DataPackage> &package) {
+readJsonFunctionDataPackage(const DataPackagePtr &package) {
   return qjson::to_json(package->getData());
 }
 
@@ -42,15 +42,16 @@ Session::Session(Network &network)
 
 Session::~Session() noexcept = default;
 
-bool Session::registerUser(std::string_view email, std::string_view password,
+bool Session::registerUser(string_param email, string_param password,
                            UserID &newUserID) {
   auto returnPackage =
       m_impl->network
           .send_data_with_result_n_option(
               makeJsonFunctionDataPackage(
-                  "register", {{"email", email}, {"password", password}})
+                  "register", {{"email", std::string_view(email)},
+                               {"password", std::string_view(password)}})
                   .to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
+              [](DataPackagePtr &package) {
                 package->type = DataPackage::Text;
               })
           .get();
@@ -62,16 +63,16 @@ bool Session::registerUser(std::string_view email, std::string_view password,
   return returnState;
 }
 
-bool Session::loginUser(UserID user_id, std::string_view password) {
+bool Session::loginUser(UserID user_id, string_param password) {
   auto returnPackage =
       m_impl->network
           .send_data_with_result_n_option(
               makeJsonFunctionDataPackage(
                   "login", {{"user_id", user_id.getOriginValue()},
-                            {"password", password},
+                            {"password", std::string_view(password)},
                             {"device", "PersonalComputer"}})
                   .to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
+              [](DataPackagePtr &package) {
                 package->type = DataPackage::Text;
               })
           .get();
@@ -94,7 +95,7 @@ bool Session::createFriendApplication(UserID user_id) {
               makeJsonFunctionDataPackage(
                   "add_friend", {{"user_id", user_id.getOriginValue()}})
                   .to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
+              [](DataPackagePtr &package) {
                 package->type = DataPackage::Text;
               })
           .get();
@@ -112,7 +113,7 @@ bool Session::applyFriendApplication(UserID user_id) {
                                    "accept_friend_verification",
                                    {{"user_id", user_id.getOriginValue()}})
                                    .to_string(),
-                               [](std::shared_ptr<qls::DataPackage> &package) {
+                               [](DataPackagePtr &package) {
                                  package->type = DataPackage::Text;
                                })
                            .get();
@@ -130,7 +131,7 @@ bool Session::rejectFriendApplication(UserID user_id) {
                                    "reject_friend_verification",
                                    {{"user_id", user_id.getOriginValue()}})
                                    .to_string(),
-                               [](std::shared_ptr<qls::DataPackage> &package) {
+                               [](DataPackagePtr &package) {
                                  package->type = DataPackage::Text;
                                })
                            .get();
@@ -146,7 +147,7 @@ bool Session::createGroup() {
       m_impl->network
           .send_data_with_result_n_option(
               makeJsonFunctionDataPackage("create_group").to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
+              [](DataPackagePtr &package) {
                 package->type = DataPackage::Text;
               })
           .get();
@@ -165,7 +166,7 @@ bool Session::createGroupApplication(GroupID group_id) {
               makeJsonFunctionDataPackage(
                   "add_group", {{"group_id", group_id.getOriginValue()}})
                   .to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
+              [](DataPackagePtr &package) {
                 package->type = DataPackage::Text;
               })
           .get();
@@ -184,7 +185,7 @@ bool Session::applyGroupApplication(GroupID group_id, UserID user_id) {
                                    {{"group_id", group_id.getOriginValue()},
                                     {"user_id", user_id.getOriginValue()}})
                                    .to_string(),
-                               [](std::shared_ptr<qls::DataPackage> &package) {
+                               [](DataPackagePtr &package) {
                                  package->type = DataPackage::Text;
                                })
                            .get();
@@ -203,7 +204,7 @@ bool Session::rejectGroupApplication(GroupID group_id, UserID user_id) {
                                    {{"group_id", group_id.getOriginValue()},
                                     {"user_id", user_id.getOriginValue()}})
                                    .to_string(),
-                               [](std::shared_ptr<qls::DataPackage> &package) {
+                               [](DataPackagePtr &package) {
                                  package->type = DataPackage::Text;
                                })
                            .get();
@@ -212,26 +213,26 @@ bool Session::rejectGroupApplication(GroupID group_id, UserID user_id) {
   return returnJson["state"].getString() == "success";
 }
 
-bool Session::sendFriendMessage(UserID user_id, std::string_view message) {
+bool Session::sendFriendMessage(UserID user_id, string_param message) {
   if (!m_impl->has_login)
     return false;
-  auto returnPackage =
-      m_impl->network
-          .send_data_with_result_n_option(
-              makeJsonFunctionDataPackage(
-                  "send_friend_message",
-                  {{"user_id", user_id.getOriginValue()}, {"message", message}})
-                  .to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
-                package->type = DataPackage::Text;
-              })
-          .get();
+  auto returnPackage = m_impl->network
+                           .send_data_with_result_n_option(
+                               makeJsonFunctionDataPackage(
+                                   "send_friend_message",
+                                   {{"user_id", user_id.getOriginValue()},
+                                    {"message", std::string_view(message)}})
+                                   .to_string(),
+                               [](DataPackagePtr &package) {
+                                 package->type = DataPackage::Text;
+                               })
+                           .get();
   auto returnJson = readJsonFunctionDataPackage(returnPackage);
   std::cout << returnJson["message"].getString() << '\n';
   return returnJson["state"].getString() == "success";
 }
 
-bool Session::sendGroupMessage(GroupID group_id, std::string_view message) {
+bool Session::sendGroupMessage(GroupID group_id, string_param message) {
   if (!m_impl->has_login)
     return false;
   auto returnPackage = m_impl->network
@@ -239,9 +240,9 @@ bool Session::sendGroupMessage(GroupID group_id, std::string_view message) {
                                makeJsonFunctionDataPackage(
                                    "send_group_message",
                                    {{"group_id", group_id.getOriginValue()},
-                                    {"message", message}})
+                                    {"message", std::string_view(message)}})
                                    .to_string(),
-                               [](std::shared_ptr<qls::DataPackage> &package) {
+                               [](DataPackagePtr &package) {
                                  package->type = DataPackage::Text;
                                })
                            .get();
@@ -259,7 +260,7 @@ bool Session::removeFriend(UserID user_id) {
               makeJsonFunctionDataPackage(
                   "remove_friend", {{"user_id", user_id.getOriginValue()}})
                   .to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
+              [](DataPackagePtr &package) {
                 package->type = DataPackage::Text;
               })
           .get();
@@ -277,7 +278,7 @@ bool Session::leaveGroup(GroupID group_id) {
               makeJsonFunctionDataPackage(
                   "leave_group", {{"group_id", group_id.getOriginValue()}})
                   .to_string(),
-              [](std::shared_ptr<qls::DataPackage> &package) {
+              [](DataPackagePtr &package) {
                 package->type = DataPackage::Text;
               })
           .get();

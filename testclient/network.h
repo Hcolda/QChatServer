@@ -29,16 +29,13 @@ public:
 
   void send_data(const std::string &data);
 
-  std::future<std::shared_ptr<DataPackage>> send_data_with_result_n_option(
+  std::future<DataPackagePtr> send_data_with_result_n_option(
       const std::string &origin_data,
-      const std::function<void(std::shared_ptr<DataPackage> &)>
-          &option_function);
+      const std::function<void(DataPackagePtr &)> &option_function);
   long long send_data_with_option(
       const std::string &origin_data,
-      const std::function<void(std::shared_ptr<DataPackage> &)>
-          &option_function,
-      const std::function<void(std::shared_ptr<DataPackage>)>
-          &callback_function);
+      const std::function<void(DataPackagePtr &)> &option_function,
+      const std::function<void(DataPackagePtr)> &callback_function);
 
   bool add_received_stdstring_callback(const std::string &,
                                        ReceiveStdStringFunction);

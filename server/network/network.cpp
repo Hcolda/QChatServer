@@ -167,7 +167,7 @@ awaitable<void> Network::process(ip::tcp::socket origin_socket) {
           continue;
         }
         pack->getData(data_buffer);
-        co_await socketService.process(data_buffer, pack);
+        co_await socketService.process(data_buffer, std::move(pack));
         continue;
       } catch (const std::system_error &e) {
         const auto &errc = e.code();

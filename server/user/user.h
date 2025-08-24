@@ -13,6 +13,7 @@
 #include "connection.hpp"
 #include "definition.hpp"
 #include "groupid.hpp"
+#include "string_param.hpp"
 #include "userid.hpp"
 
 namespace qls {
@@ -71,7 +72,7 @@ public:
   [[nodiscard]] std::string getUserEmail() const;
   [[nodiscard]] std::string getUserPhone() const;
   [[nodiscard]] std::string getUserProfile() const;
-  [[nodiscard]] bool isUserPassword(std::string_view) const;
+  [[nodiscard]] bool isUserPassword(string_param) const;
 
   // Methods to get user associated information
 
@@ -134,25 +135,24 @@ public:
    * @brief Notifies all sockets associated with the user.
    * @param data Data to send in the notification.
    */
-  void notifyAll(std::string_view data);
+  void notifyAll(string_param data);
 
   /**
    * @brief Notifies sockets of a specific DeviceType associated with the user.
    * @param type DeviceType of sockets to notify.
    * @param data Data to send in the notification.
    */
-  void notifyWithType(DeviceType type, std::string_view data);
+  void notifyWithType(DeviceType type, string_param data);
 
   // Methods to update user information
 
-  void updateUserName(std::string_view);
+  void updateUserName(string_param);
   void updateAge(int);
-  void updateUserEmail(std::string_view);
-  void updateUserPhone(std::string_view);
-  void updateUserProfile(std::string_view);
-  void firstUpdateUserPassword(std::string_view new_password);
-  void updateUserPassword(std::string_view old_password,
-                          std::string_view new_password);
+  void updateUserEmail(string_param);
+  void updateUserPhone(string_param);
+  void updateUserProfile(string_param);
+  void firstUpdateUserPassword(string_param new_password);
+  void updateUserPassword(string_param old_password, string_param new_password);
 
   void updateFriendList(const std::function<void(std::unordered_set<UserID> &)>
                             &callback_function);

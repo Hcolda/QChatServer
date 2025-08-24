@@ -104,12 +104,10 @@ static inline void sendJsonToUser(It begin, S end, T &&json, Func &&func) {
   auto pack = DataPackage::makePackage(
       qjson::JObject(std::forward<T>(json)).to_string());
   pack->type = DataPackage::Text;
-  std::ranges::for_each(std::move(begin), std::move(end),
-                        [pack = std::move(pack),
-                         func = std::forward<Func>(func)](const auto &argu) {
-                          serverManager.getUser(std::invoke(func, argu))
-                              ->notifyAll(pack->packageToString());
-                        });
+  for (; begin != end; ++begin) {
+    serverManager.getUser(std::invoke(func, *begin))
+        ->notifyAll(pack->packageToString());
+  }
 }
 
 User::User(const UserID &user_id, bool is_create,
@@ -169,7 +167,7 @@ std::string User::getUserProfile() const {
   return m_impl->profile;
 }
 
-bool User::isUserPassword(std::string_view password) const {
+bool User::isUserPassword(string_param password) const {
   md_ctx_proxy sha512_proxy(m_impl->m_md_proxy);
   std::shared_lock lock(m_impl->m_data_mutex);
   std::string localPassword = sha512_proxy(password, m_impl->salt);
@@ -177,7 +175,7 @@ bool User::isUserPassword(std::string_view password) const {
   return localPassword == m_impl->password;
 }
 
-void User::updateUserName(std::string_view user_name) {
+void User::updateUserName(string_param user_name) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->user_name = user_name;
 }
@@ -187,22 +185,22 @@ void User::updateAge(int age) {
   m_impl->age = age;
 }
 
-void User::updateUserEmail(std::string_view email) {
+void User::updateUserEmail(string_param email) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->email = email;
 }
 
-void User::updateUserPhone(std::string_view phone) {
+void User::updateUserPhone(string_param phone) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->phone = phone;
 }
 
-void User::updateUserProfile(std::string_view profile) {
+void User::updateUserProfile(string_param profile) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->profile = profile;
 }
 
-void User::firstUpdateUserPassword(std::string_view new_password) {
+void User::firstUpdateUserPassword(string_param new_password) {
   if (!m_impl->password.empty()) {
     throw std::system_error(qls_errc::password_already_set);
   }
@@ -224,8 +222,8 @@ void User::firstUpdateUserPassword(std::string_view new_password) {
   }
 }
 
-void User::updateUserPassword(std::string_view old_password,
-                              std::string_view new_password) {
+void User::updateUserPassword(string_param old_password,
+                              string_param new_password) {
   if (!isUserPassword(old_password))
     throw std::system_error(qls_errc::password_mismatched,
                             "wrong old password");
@@ -497,10 +495,8 @@ bool User::removeGroup(const GroupID &group_id) {
           const std::pmr::unordered_map<UserID, GroupRoom::UserDataStructure>
               &map) mutable {
         sendJsonToUser(self_id, qjson::JObject(json));
-        sendJsonToUser(
-            map.begin(), map.end(), std::move(json),
-            [](const std::pair<const UserID, GroupRoom::UserDataStructure>
-                   &pair) { return pair.first; });
+        sendJsonToUser(map.begin(), map.end(), std::move(json),
+                       [](const auto &pair) { return pair.first; });
       });
 
   try {
@@ -534,10 +530,8 @@ bool User::leaveGroup(const GroupID &group_id) {
           const std::pmr::unordered_map<UserID, GroupRoom::UserDataStructure>
               &map) mutable {
         sendJsonToUser(admin, qjson::JObject(json));
-        sendJsonToUser(
-            map.begin(), map.end(), std::move(json),
-            [](const std::pair<const UserID, GroupRoom::UserDataStructure>
-                   &pair) { return pair.first; });
+        sendJsonToUser(map.begin(), map.end(), std::move(json),
+                       [](const auto &pair) { return pair.first; });
       });
   return true;
 }
@@ -612,12 +606,12 @@ void User::removeConnection(
   m_impl->m_connection_map.erase(iter);
 }
 
-void User::notifyAll(std::string_view data) {
+void User::notifyAll(string_param data) {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   std::shared_ptr<std::string> buffer_ptr(std::allocate_shared<std::string>(
       std::pmr::polymorphic_allocator<std::string>(
           m_impl->m_local_memory_resouce),
-      data));
+      std::string_view(data)));
   for (const auto &[connection_ptr, type] : m_impl->m_connection_map) {
     asio::async_write(connection_ptr->socket, asio::buffer(*buffer_ptr),
                       asio::bind_executor(
@@ -631,12 +625,12 @@ void User::notifyAll(std::string_view data) {
   }
 }
 
-void User::notifyWithType(DeviceType type, std::string_view data) {
+void User::notifyWithType(DeviceType type, string_param data) {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   std::shared_ptr<std::string> buffer_ptr(std::allocate_shared<std::string>(
       std::pmr::polymorphic_allocator<std::string>(
           m_impl->m_local_memory_resouce),
-      data));
+      std::string_view(data)));
   for (const auto &[connection_ptr, dtype] : m_impl->m_connection_map) {
     if (dtype == type) {
       asio::async_write(

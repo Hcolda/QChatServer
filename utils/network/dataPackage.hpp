@@ -11,6 +11,7 @@
 
 #include "networkEndianness.hpp"
 #include "qls_error.h"
+#include "string_param.hpp"
 
 namespace qls {
 
@@ -45,6 +46,16 @@ private:
 #pragma pack()
 
 public:
+  struct DataPackageDeleter {
+    void operator()(DataPackage *ptr) const noexcept {
+      if (ptr) {
+        std::size_t length = ptr->length;
+        ptr->~DataPackage();
+        DataPackage::local_datapack_sync_pool.deallocate(ptr, length);
+      }
+    }
+  };
+
   DataPackage() = delete;
   ~DataPackage() noexcept = default;
   DataPackage(const DataPackage &) = delete;
@@ -57,20 +68,18 @@ public:
    * @brief Creates a data package from the given data.
    * @return Shared pointer to the created data package.
    */
-  [[nodiscard]] static std::shared_ptr<DataPackage>
-  makePackage(std::string_view data,
+  [[nodiscard]] static std::unique_ptr<DataPackage, DataPackageDeleter>
+  makePackage(string_param string_data,
               DataPackageType type = DataPackageType::Unknown,
               LengthType sequenceSize = 1, LengthType sequence = 0,
               RequestIDType requestID = 0) {
+    std::string_view data = string_data;
     const std::size_t lenth = sizeof(DataPackage) + data.size();
     void *mem =
         local_datapack_sync_pool.allocate(static_cast<LengthType>(lenth));
     std::memset(mem, 0, lenth);
-    std::shared_ptr<DataPackage> package(
-        static_cast<DataPackage *>(mem), [lenth](DataPackage *data_package) {
-          data_package->~DataPackage();
-          local_datapack_sync_pool.deallocate(data_package, lenth);
-        });
+    std::unique_ptr<DataPackage, DataPackageDeleter> package(
+        static_cast<DataPackage *>(mem));
     package->length = static_cast<LengthType>(lenth);
     std::memcpy(package->data, data.data(), data.size());
     package->type = type;
@@ -85,8 +94,9 @@ public:
    * @param data Binary data representing a data package.
    * @return Shared pointer to the loaded data package.
    */
-  [[nodiscard]] static std::shared_ptr<DataPackage>
-  stringToPackage(std::string_view data) {
+  [[nodiscard]] static std::unique_ptr<DataPackage, DataPackageDeleter>
+  stringToPackage(string_param string_data) {
+    std::string_view data = string_data;
     // Check if the package data is too small
     if (data.size() < sizeof(DataPackage)) {
       throw std::system_error(qls_errc::data_too_small);
@@ -108,12 +118,8 @@ public:
     // Allocate memory and construct the DataPackage
     void *mem = local_datapack_sync_pool.allocate(size);
     std::memset(mem, 0, size);
-    std::shared_ptr<DataPackage> package(
-        static_cast<DataPackage *>(mem),
-        [lenth = size](DataPackage *data_package) {
-          data_package->~DataPackage();
-          local_datapack_sync_pool.deallocate(data_package, lenth);
-        });
+    std::unique_ptr<DataPackage, DataPackageDeleter> package(
+        static_cast<DataPackage *>(mem));
     // Copy the data from string
     std::memcpy(package.get(), data.data(), size);
 
@@ -158,6 +164,30 @@ public:
     return strdata;
   }
 
+  [[nodiscard]] std::pmr::string
+  packageToString(std::pmr::memory_resource *mr) const {
+    using namespace qls;
+    std::pmr::string strdata(mr);
+    strdata.resize(this->length);
+    // Copy this memory data into strdata
+    std::memcpy(strdata.data(), this, this->length);
+    // Converse the string pointer to DataPackage pointor to process data
+    DataPackage *package = reinterpret_cast<DataPackage *>(strdata.data());
+
+    // Process string data
+    if constexpr (std::endian::native == std::endian::little) {
+      // Endianness conversion
+      package->length = swapEndianness(package->length);
+      package->type = static_cast<DataPackageType>(
+          swapEndianness(static_cast<LengthType>(package->type)));
+      package->sequenceSize = swapEndianness(package->sequenceSize);
+      package->sequence = swapEndianness(package->sequence);
+      package->requestID = swapEndianness(package->requestID);
+    }
+
+    return strdata;
+  }
+
   /**
    * @brief Gets the size of this data package.
    * @return Size of this data package.
@@ -180,6 +210,11 @@ public:
    */
   [[nodiscard]] std::string getData() const {
     return {reinterpret_cast<const char *>(this->data), this->getDataSize()};
+  }
+
+  [[nodiscard]] std::pmr::string getData(std::pmr::memory_resource *mr) const {
+    return {reinterpret_cast<const char *>(this->data), this->getDataSize(),
+            mr};
   }
 
   /**
@@ -218,6 +253,9 @@ private:
   inline static std::pmr::synchronized_pool_resource local_datapack_sync_pool =
       {};
 };
+
+using DataPackagePtr =
+    std::unique_ptr<DataPackage, DataPackage::DataPackageDeleter>;
 
 } // namespace qls
 
