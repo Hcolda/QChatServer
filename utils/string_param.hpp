@@ -43,18 +43,16 @@ public:
   std::size_t size() const {
     if (is_owned_) {
       return std::visit([](const auto &s) { return s.size(); }, buffer_);
-    } else {
-      return view_.size();
     }
+    return view_.size();
   }
 
   operator std::string_view() const {
     if (is_owned_) {
       return std::visit([](const auto &s) { return std::string_view(s); },
                         buffer_);
-    } else {
-      return view_;
     }
+    return view_;
   }
 
   bool is_owned() const { return is_owned_; }
@@ -63,18 +61,16 @@ public:
     if (is_owned_) {
       return std::holds_alternative<
           std::basic_string<char, std::char_traits<char>, Alloc>>(buffer_);
-    } else {
-      return false;
     }
+    return false;
   }
 
   std::basic_string<char, std::char_traits<char>, Alloc> extract() && {
     if (is_owned_) {
       return std::get<std::basic_string<char, std::char_traits<char>, Alloc>>(
           std::move(buffer_));
-    } else {
-      throw std::logic_error("Cannot extract from non-owned string_param");
     }
+    throw std::logic_error("Cannot extract from non-owned string_param");
   }
 
 private:
