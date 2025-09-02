@@ -7,7 +7,10 @@ on:
     branches: [main, master, develop]
     paths: ['**.c', '**.cpp', '**.h', '**.hpp', '**.cxx', '**.hxx', '**.cc', '**.hh', '**CMakeLists.txt', 'meson.build', '**.cmake']
 
-permissions: write-all
+permissions:
+  issue: write
+  pull-requests: write
+  contents: read
 
 jobs:
   cpp-linter:

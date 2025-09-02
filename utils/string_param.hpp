@@ -21,17 +21,17 @@ public:
       : is_owned_(false), view_(str) {}
 
   basic_string_param(
-      std::basic_string<char, std::char_traits<char>, Alloc> &&str)
+      std::basic_string<char, std::char_traits<char>, Alloc> &&str) noexcept
       : is_owned_(true), buffer_(std::move(str)) {}
 
   basic_string_param(const basic_string_param &) = delete;
   basic_string_param &operator=(const basic_string_param &) = delete;
 
-  basic_string_param(basic_string_param &&str)
+  basic_string_param(basic_string_param &&str) noexcept
       : is_owned_(str.is_owned_), view_(str.view_),
         buffer_(std::move(str.buffer_)) {}
 
-  basic_string_param &operator=(basic_string_param &&str) {
+  basic_string_param &operator=(basic_string_param &&str) noexcept {
     if (this != &str) {
       is_owned_ = str.is_owned_;
       view_ = str.view_;
@@ -93,11 +93,12 @@ public:
 
   string_param(const std::string &str) : is_owned_(false), view_(str) {}
 
-  string_param(std::string &&str) : is_owned_(true), buffer_(std::move(str)) {}
+  string_param(std::string &&str) noexcept
+      : is_owned_(true), buffer_(std::move(str)) {}
 
   string_param(const std::pmr::string &str) : is_owned_(false), view_(str) {}
 
-  string_param(std::pmr::string &&str)
+  string_param(std::pmr::string &&str) noexcept
       : is_owned_(true), buffer_(std::move(str)) {}
 
   template <typename It, std::sentinel_for<It> S>
@@ -121,11 +122,11 @@ public:
   string_param(const string_param &) = delete;
   string_param &operator=(const string_param &) = delete;
 
-  string_param(string_param &&str)
+  string_param(string_param &&str) noexcept
       : is_owned_(str.is_owned_), view_(str.view_),
         buffer_(std::move(str.buffer_)) {}
 
-  string_param &operator=(string_param &&str) {
+  string_param &operator=(string_param &&str) noexcept {
     if (this != &str) {
       is_owned_ = str.is_owned_;
       view_ = str.view_;
