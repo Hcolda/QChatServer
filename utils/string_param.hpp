@@ -2,9 +2,9 @@
 #define STRING_PARAM_HPP
 
 #include <cassert>
+#include <format>
 #include <iterator>
 #include <memory_resource>
-#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -216,10 +216,8 @@ private:
 } // namespace qls
 
 namespace std {
-template <>
-struct formatter<qls::string_param> {
-  template <typename ParseContext>
-  constexpr auto parse(ParseContext &ctx) {
+template <> struct formatter<qls::string_param> {
+  template <typename ParseContext> constexpr auto parse(ParseContext &ctx) {
     return ctx.begin();
   }
 
