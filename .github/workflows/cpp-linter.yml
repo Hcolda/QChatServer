@@ -8,6 +8,7 @@ on:
     paths: ['**.c', '**.cpp', '**.h', '**.hpp', '**.cxx', '**.hxx', '**.cc', '**.hh', '**CMakeLists.txt', 'meson.build', '**.cmake']
 
 permissions:
+  issues: write
   pull-requests: write
 
 jobs:
@@ -52,7 +53,7 @@ jobs:
           style: 'file'
           tidy-checks: ''
           extra-args: '-std=c++23'
-          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+          step-summary: true
 
       - name: Fail fast?!
         if: steps.linter.outputs.clang-format-checks-failed > 0
