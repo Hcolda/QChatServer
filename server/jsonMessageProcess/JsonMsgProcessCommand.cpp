@@ -207,7 +207,7 @@ qjson::JObject GetGroupListCommand::execute(UserID executor,
       makeSuccessMessage("Successfully obtained group list!");
 
   for (const auto &iter : set) {
-    returnJson["friend_list"].push_back(iter.getOriginValue());
+    returnJson["group_list"].push_back(iter.getOriginValue());
   }
 
   serverLogger.debug("User ", executor.getOriginValue(), " get a group list");

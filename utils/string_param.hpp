@@ -73,6 +73,30 @@ public:
     throw std::logic_error("Cannot extract from non-owned string_param");
   }
 
+  friend bool operator==(const basic_string_param &lhs, const basic_string_param &rhs) {
+    return std::string_view(lhs) == std::string_view(rhs);
+  }
+
+  friend bool operator<(const basic_string_param &lhs, const basic_string_param &rhs) {
+    return std::string_view(lhs) < std::string_view(rhs);
+  }
+
+  friend bool operator!=(const basic_string_param &lhs, const basic_string_param &rhs) {
+    return !(lhs == rhs);
+  }
+
+  friend bool operator<=(const basic_string_param &lhs, const basic_string_param &rhs) {
+    return !(rhs < lhs);
+  }
+
+  friend bool operator>(const basic_string_param &lhs, const basic_string_param &rhs) {
+    return rhs < lhs;
+  }
+
+  friend bool operator>=(const basic_string_param &lhs, const basic_string_param &rhs) {
+    return !(lhs < rhs);
+  }
+
 private:
   std::string_view view_;
   std::basic_string<char, std::char_traits<char>, Alloc> buffer_;
