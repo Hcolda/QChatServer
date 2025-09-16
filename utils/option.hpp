@@ -13,11 +13,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "string_param.hpp"
-
 NAMESPACE_OPTION_START
-
-using qls::string_param;
 
 class Option {
 public:
@@ -61,7 +57,7 @@ public:
    * @param opt_name Name of the option
    * @param type Type of the option
    */
-  void add(string_param opt_name, OptionType type) {
+  void add(std::string_view opt_name, OptionType type) {
     if (type == OptionType::OPT_UNKNOWN) {
       throw std::logic_error("Option type cannot be \"OPT_UNKNOWN\"");
     }
@@ -73,7 +69,7 @@ public:
    * @brief Remove an option
    * @param opt_name Name of the option
    */
-  void remove(string_param opt_name) {
+  void remove(std::string_view opt_name) {
     auto itor = m_opt_map.find(opt_name);
     if (itor != m_opt_map.cend()) {
       m_opt_map.erase(itor);
@@ -99,7 +95,7 @@ public:
    * @brief Parse a command string
    * @param command Full command string to parse
    */
-  void parse(string_param command) {
+  void parse(std::string_view command) {
     std::string_view data = command;
     std::vector<std::string> dataList;
 
@@ -260,7 +256,7 @@ public:
    * @param opt Option name
    * @return True if the option exists, false otherwise
    */
-  [[nodiscard]] bool has_opt(string_param opt) const {
+  [[nodiscard]] bool has_opt(std::string_view opt) const {
     return m_opt_map.find(opt) != m_opt_map.cend();
   }
 
@@ -269,7 +265,7 @@ public:
    * @param opt Option name
    * @return True if the option exists and has value, false otherwise
    */
-  [[nodiscard]] bool has_opt_with_value(string_param opt) const {
+  [[nodiscard]] bool has_opt_with_value(std::string_view opt) const {
     return m_opt_map.find(opt) != m_opt_map.cend() &&
            m_args_map.find(opt) != m_args_map.cend();
   }
@@ -286,7 +282,7 @@ public:
    * @return Boolean value of the option
    * @throw std::logic_error If the option does not exist or is not a boolean
    */
-  [[nodiscard]] bool get_bool(string_param opt) const {
+  [[nodiscard]] bool get_bool(std::string_view opt) const {
     if (!has_opt(std::string_view(opt))) {
       throw std::logic_error("No such option: " + std::string(opt));
     }
@@ -307,7 +303,7 @@ public:
    * @return String value of the option
    * @throw std::logic_error If the option does not exist
    */
-  [[nodiscard]] std::string get_string(string_param opt) const {
+  [[nodiscard]] std::string get_string(std::string_view opt) const {
     if (!has_opt(std::string_view(opt))) {
       throw std::logic_error("No such option: " + std::string(opt));
     }
@@ -321,7 +317,7 @@ public:
    * @return Integer value of the option
    * @throw std::logic_error If the option does not exist or is not an integer
    */
-  [[nodiscard]] long long get_int(string_param opt) const {
+  [[nodiscard]] long long get_int(std::string_view opt) const {
     if (!has_opt(std::string_view(opt))) {
       throw std::logic_error("No such option: " + std::string(opt));
     }
@@ -335,7 +331,7 @@ public:
    * @return Double value of the option
    * @throw std::logic_error If the option does not exist or is not a double
    */
-  [[nodiscard]] long double get_double(string_param opt) const {
+  [[nodiscard]] long double get_double(std::string_view opt) const {
     if (!has_opt(std::string_view(opt))) {
       throw std::logic_error("No such option: " + std::string(opt));
     }
@@ -392,7 +388,7 @@ protected:
    * @param opt Option name
    * @return Type of the option
    */
-  OptionType get_type(string_param opt) const {
+  OptionType get_type(std::string_view opt) const {
     auto itor = m_opt_map.find(opt);
 
     if (itor == m_opt_map.cend()) {
@@ -411,9 +407,6 @@ private:
       return hash_type{}(str);
     }
     std::size_t operator()(const std::string &str) const {
-      return hash_type{}(str);
-    }
-    std::size_t operator()(const string_param &str) const {
       return hash_type{}(str);
     }
   };

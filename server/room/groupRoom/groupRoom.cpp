@@ -126,7 +126,7 @@ bool GroupRoom::removeMember(const UserID &user_id) {
 }
 
 void GroupRoom::sendMessage(const UserID &sender_user_id,
-                            string_param message) {
+                            std::string_view message) {
   if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::group_room_unable_to_use));
@@ -175,7 +175,7 @@ void GroupRoom::sendMessage(const UserID &sender_user_id,
 }
 
 void GroupRoom::sendTipMessage(const UserID &sender_user_id,
-                               string_param message) {
+                               std::string_view message) {
   if (!m_impl->m_can_be_used) {
     throw std::system_error(
         make_error_code(qls_errc::group_room_unable_to_use));
@@ -223,7 +223,7 @@ void GroupRoom::sendTipMessage(const UserID &sender_user_id,
 }
 
 void GroupRoom::sendUserTipMessage(const UserID &sender_user_id,
-                                   string_param message,
+                                   std::string_view message,
                                    const UserID &receiver_user_id) {
   if (!m_impl->m_can_be_used) {
     throw std::system_error(

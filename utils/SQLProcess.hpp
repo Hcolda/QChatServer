@@ -17,8 +17,6 @@
 #include <asio.hpp>
 #include <mariadb/conncpp.hpp>
 
-#include "string_param.hpp"
-
 namespace qls {
 
 /**
@@ -41,8 +39,8 @@ public:
    * @param host Database host address.
    * @param port Database port.
    */
-  SQLDBProcess(string_param username, string_param password,
-               string_param database_name, string_param host,
+  SQLDBProcess(std::string_view username, std::string_view password,
+               std::string_view database_name, std::string_view host,
                unsigned short port) {
     m_username = username;
     m_password = password;
@@ -76,8 +74,8 @@ public:
    * @param host Database host address.
    * @param port Database port.
    */
-  void setSQLServerInfo(string_param username, string_param password,
-                        string_param database_name, string_param host,
+  void setSQLServerInfo(std::string_view username, std::string_view password,
+                        std::string_view database_name, std::string_view host,
                         unsigned short port) {
     m_username = username;
     m_password = password;

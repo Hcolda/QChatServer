@@ -48,13 +48,13 @@ GroupPermission::GroupPermission(std::pmr::memory_resource *memory_resource)
 
 GroupPermission::~GroupPermission() noexcept = default;
 
-void GroupPermission::modifyPermission(string_param permissionName,
+void GroupPermission::modifyPermission(std::string_view permissionName,
                                        PermissionType type) {
   std::lock_guard<std::shared_mutex> lock(m_impl->m_permission_map_mutex);
   m_impl->m_permission_map.emplace(permissionName, type);
 }
 
-void GroupPermission::removePermission(string_param permissionName) {
+void GroupPermission::removePermission(std::string_view permissionName) {
   std::lock_guard<std::shared_mutex> lock(m_impl->m_permission_map_mutex);
 
   // 是否有此权限
@@ -68,7 +68,7 @@ void GroupPermission::removePermission(string_param permissionName) {
 }
 
 PermissionType
-GroupPermission::getPermissionType(string_param permissionName) const {
+GroupPermission::getPermissionType(std::string_view permissionName) const {
   std::shared_lock lock(m_impl->m_permission_map_mutex);
 
   // 是否有此权限
@@ -110,7 +110,7 @@ void GroupPermission::removeUser(const UserID &user_id) {
 }
 
 bool GroupPermission::userHasPermission(const UserID &user_id,
-                                        string_param permissionName) const {
+                                        std::string_view permissionName) const {
   std::shared_lock lock1(m_impl->m_permission_map_mutex, std::defer_lock);
   std::shared_lock lock2(m_impl->m_user_permission_map_mutex, std::defer_lock);
   std::lock(lock1, lock2);

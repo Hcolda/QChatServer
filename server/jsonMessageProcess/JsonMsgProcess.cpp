@@ -7,7 +7,7 @@
 #include "manager.h"
 #include "regexMatch.hpp"
 #include "returnStateMessage.hpp"
-#include "string_param.hpp"
+
 #include "userid.hpp"
 #include <logger.hpp>
 #include <string>
@@ -26,7 +26,7 @@ class JsonMessageProcessCommandList {
 public:
   JsonMessageProcessCommandList() {
     auto init_command =
-        [&](string_param function_name,
+        [&](std::string_view function_name,
             const std::shared_ptr<JsonMessageCommand> &command_ptr) -> bool {
       if (m_function_map.find(function_name) != m_function_map.cend() ||
           !command_ptr) {
@@ -67,11 +67,12 @@ public:
   }
   ~JsonMessageProcessCommandList() = default;
 
-  bool addCommand(string_param function_name,
+  bool addCommand(std::string_view function_name,
                   const std::shared_ptr<JsonMessageCommand> &command_ptr);
-  bool hasCommand(string_param function_name) const;
-  std::shared_ptr<JsonMessageCommand> getCommand(string_param function_name);
-  bool removeCommand(string_param function_name);
+  bool hasCommand(std::string_view function_name) const;
+  std::shared_ptr<JsonMessageCommand>
+  getCommand(std::string_view function_name);
+  bool removeCommand(std::string_view function_name);
 
 private:
   std::unordered_map<std::string, std::shared_ptr<JsonMessageCommand>,
@@ -81,7 +82,7 @@ private:
 };
 
 bool JsonMessageProcessCommandList::addCommand(
-    string_param function_name,
+    std::string_view function_name,
     const std::shared_ptr<JsonMessageCommand> &command_ptr) {
   if (hasCommand(std::move(function_name)) || !command_ptr) {
     return false;
@@ -93,13 +94,13 @@ bool JsonMessageProcessCommandList::addCommand(
 }
 
 bool JsonMessageProcessCommandList::hasCommand(
-    string_param function_name) const {
+    std::string_view function_name) const {
   std::shared_lock lock(m_function_map_mutex);
   return m_function_map.find(function_name) != m_function_map.cend();
 }
 
 std::shared_ptr<JsonMessageCommand>
-JsonMessageProcessCommandList::getCommand(string_param function_name) {
+JsonMessageProcessCommandList::getCommand(std::string_view function_name) {
   std::shared_lock lock(m_function_map_mutex);
   auto iter = m_function_map.find(function_name);
   if (iter == m_function_map.cend()) {
@@ -108,7 +109,8 @@ JsonMessageProcessCommandList::getCommand(string_param function_name) {
   return iter->second;
 }
 
-bool JsonMessageProcessCommandList::removeCommand(string_param function_name) {
+bool JsonMessageProcessCommandList::removeCommand(
+    std::string_view function_name) {
   if (!hasCommand(std::move(function_name))) {
     return false;
   }
@@ -133,7 +135,7 @@ public:
   static qjson::JObject getUserPublicInfo(const UserID &user_id);
 
   static qjson::JObject hasUser(const UserID &user_id);
-  static qjson::JObject searchUser(string_param user_name);
+  static qjson::JObject searchUser(std::string_view user_name);
 
   UserID getLocalUserID() const;
 
@@ -141,12 +143,12 @@ public:
   processJsonMessage(const qjson::JObject &json,
                      const SocketService &socket_service);
 
-  qjson::JObject login(const UserID &user_id, string_param password,
-                       string_param device,
+  qjson::JObject login(const UserID &user_id, std::string_view password,
+                       std::string_view device,
                        const SocketService &socket_service);
 
-  static qjson::JObject login(string_param email, string_param password,
-                              string_param device);
+  static qjson::JObject login(std::string_view email, std::string_view password,
+                              std::string_view device);
 
 private:
   UserID m_user_id;
@@ -175,7 +177,7 @@ qjson::JObject JsonMessageProcessImpl::hasUser(const UserID &user_id) {
   return returnJson;
 }
 
-qjson::JObject JsonMessageProcessImpl::searchUser(string_param user_name) {
+qjson::JObject JsonMessageProcessImpl::searchUser(std::string_view user_name) {
   return makeErrorMessage("This function is incomplete.");
 }
 
@@ -292,8 +294,8 @@ asio::awaitable<qjson::JObject> JsonMessageProcessImpl::processJsonMessage(
 }
 
 qjson::JObject
-JsonMessageProcessImpl::login(const UserID &user_id, string_param password,
-                              string_param device,
+JsonMessageProcessImpl::login(const UserID &user_id, std::string_view password,
+                              std::string_view device,
                               const SocketService &socket_service) {
   if (!serverManager.hasUser(user_id)) {
     return makeErrorMessage("The user ID or password is wrong!");
@@ -330,9 +332,9 @@ JsonMessageProcessImpl::login(const UserID &user_id, string_param password,
   return makeErrorMessage("The user ID or password is wrong!");
 }
 
-qjson::JObject JsonMessageProcessImpl::login(string_param email,
-                                             string_param password,
-                                             string_param device) {
+qjson::JObject JsonMessageProcessImpl::login(std::string_view email,
+                                             std::string_view password,
+                                             std::string_view device) {
   if (!qls::RegexMatch::emailMatch(std::string_view(email))) {
     return makeErrorMessage("Email is invalid");
   }

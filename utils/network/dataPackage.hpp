@@ -11,7 +11,6 @@
 
 #include "networkEndianness.hpp"
 #include "qls_error.h"
-#include "string_param.hpp"
 
 namespace qls {
 
@@ -69,7 +68,7 @@ public:
    * @return Shared pointer to the created data package.
    */
   [[nodiscard]] static std::unique_ptr<DataPackage, DataPackageDeleter>
-  makePackage(string_param string_data,
+  makePackage(std::string_view string_data,
               DataPackageType type = DataPackageType::Unknown,
               LengthType sequenceSize = 1, LengthType sequence = 0,
               RequestIDType requestID = 0) {
@@ -95,7 +94,7 @@ public:
    * @return Shared pointer to the loaded data package.
    */
   [[nodiscard]] static std::unique_ptr<DataPackage, DataPackageDeleter>
-  stringToPackage(string_param string_data) {
+  stringToPackage(std::string_view string_data) {
     std::string_view data = string_data;
     // Check if the package data is too small
     if (data.size() < sizeof(DataPackage)) {

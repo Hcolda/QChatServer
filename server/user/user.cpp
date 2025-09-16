@@ -167,7 +167,7 @@ std::string User::getUserProfile() const {
   return m_impl->profile;
 }
 
-bool User::isUserPassword(string_param password) const {
+bool User::isUserPassword(std::string_view password) const {
   md_ctx_proxy sha512_proxy(m_impl->m_md_proxy);
   std::shared_lock lock(m_impl->m_data_mutex);
   std::string localPassword = sha512_proxy(password, m_impl->salt);
@@ -175,7 +175,7 @@ bool User::isUserPassword(string_param password) const {
   return localPassword == m_impl->password;
 }
 
-void User::updateUserName(string_param user_name) {
+void User::updateUserName(std::string_view user_name) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->user_name = user_name;
 }
@@ -185,22 +185,22 @@ void User::updateAge(int age) {
   m_impl->age = age;
 }
 
-void User::updateUserEmail(string_param email) {
+void User::updateUserEmail(std::string_view email) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->email = email;
 }
 
-void User::updateUserPhone(string_param phone) {
+void User::updateUserPhone(std::string_view phone) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->phone = phone;
 }
 
-void User::updateUserProfile(string_param profile) {
+void User::updateUserProfile(std::string_view profile) {
   std::unique_lock lock(m_impl->m_data_mutex);
   m_impl->profile = profile;
 }
 
-void User::firstUpdateUserPassword(string_param new_password) {
+void User::firstUpdateUserPassword(std::string_view new_password) {
   if (!m_impl->password.empty()) {
     throw std::system_error(qls_errc::password_already_set);
   }
@@ -222,8 +222,8 @@ void User::firstUpdateUserPassword(string_param new_password) {
   }
 }
 
-void User::updateUserPassword(string_param old_password,
-                              string_param new_password) {
+void User::updateUserPassword(std::string_view old_password,
+                              std::string_view new_password) {
   if (!isUserPassword(std::move(old_password)))
     throw std::system_error(qls_errc::password_mismatched,
                             "wrong old password");
@@ -606,7 +606,7 @@ void User::removeConnection(
   m_impl->m_connection_map.erase(iter);
 }
 
-void User::notifyAll(string_param data) {
+void User::notifyAll(std::string_view data) {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   std::shared_ptr<std::string> buffer_ptr(std::allocate_shared<std::string>(
       std::pmr::polymorphic_allocator<std::string>(
@@ -625,7 +625,7 @@ void User::notifyAll(string_param data) {
   }
 }
 
-void User::notifyWithType(DeviceType type, string_param data) {
+void User::notifyWithType(DeviceType type, std::string_view data) {
   std::shared_lock lock(m_impl->m_connection_map_mutex);
   std::shared_ptr<std::string> buffer_ptr(std::allocate_shared<std::string>(
       std::pmr::polymorphic_allocator<std::string>(

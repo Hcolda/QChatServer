@@ -333,7 +333,7 @@ CommandManager::CommandManager() {
   addCommand("leaveGroup", std::make_shared<LeaveGroupCommand>());
 }
 
-bool CommandManager::addCommand(string_param commandName,
+bool CommandManager::addCommand(std::string_view commandName,
                                 const std::shared_ptr<Command> &commandPtr) {
   std::unique_lock lock(m_command_map_mutex);
   if (m_command_map.find(commandName) != m_command_map.cend()) {
@@ -343,7 +343,7 @@ bool CommandManager::addCommand(string_param commandName,
   return true;
 }
 
-bool CommandManager::removeCommand(string_param commandName) {
+bool CommandManager::removeCommand(std::string_view commandName) {
   std::unique_lock lock(m_command_map_mutex);
   auto iter = m_command_map.find(commandName);
   if (iter == m_command_map.cend()) {
@@ -353,13 +353,13 @@ bool CommandManager::removeCommand(string_param commandName) {
   return true;
 }
 
-bool CommandManager::canFindCommand(string_param commandName) const {
+bool CommandManager::canFindCommand(std::string_view commandName) const {
   std::shared_lock lock(m_command_map_mutex);
   return m_command_map.find(commandName) != m_command_map.cend();
 }
 
 std::shared_ptr<Command>
-CommandManager::getCommand(string_param commandName) const {
+CommandManager::getCommand(std::string_view commandName) const {
   std::shared_lock lock(m_command_map_mutex);
   auto iter = m_command_map.find(commandName);
   if (iter == m_command_map.cend())
