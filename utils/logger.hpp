@@ -195,7 +195,8 @@ protected:
 
       this_logger->m_file << generateTimeFormatString() << modeString;
       writeTupleImpl(tuple, std::index_sequence_for<Args...>{});
-      this_logger->m_file << std::endl;
+      this_logger->m_file << '\n';
+      this_logger->m_file.flush();
     }
   };
 

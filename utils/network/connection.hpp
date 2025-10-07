@@ -16,8 +16,8 @@ template <class T> struct Connection {
   asio::strand<asio::any_io_executor> strand;
 
   template <class U>
-  Connection(U &&socket, asio::ssl::context &context)
-      : socket(std::forward<U>(socket), context),
+  Connection(U &&lsocket, asio::ssl::context &context)
+      : socket(std::forward<U>(lsocket), context),
         strand(asio::make_strand(socket.get_executor())) {}
 
   ~Connection() noexcept {

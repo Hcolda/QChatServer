@@ -54,7 +54,7 @@ jobs:
           style: 'file'
           tidy-checks: ''
           extra-args: '-std=c++23'
-          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
+          step-summary: ${{ github.event_name == 'pull_request' && 'update' }}
 
       - name: Fail fast?!
         if: steps.linter.outputs.clang-format-checks-failed > 0

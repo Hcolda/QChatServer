@@ -29,8 +29,8 @@ public:
 
   ~PrivateRoom() noexcept;
 
-  void sendMessage(string_param message, const UserID &sender_user_id);
-  void sendTipMessage(string_param message, const UserID &sender_user_id);
+  void sendMessage(std::string_view message, const UserID &sender_user_id);
+  void sendTipMessage(std::string_view message, const UserID &sender_user_id);
   std::vector<MessageResult>
   getMessage(const std::chrono::utc_clock::time_point &from,
              const std::chrono::utc_clock::time_point &to);

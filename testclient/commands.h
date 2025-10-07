@@ -8,7 +8,7 @@
 #include <string_view>
 
 #include "session.h"
-#include "string_param.hpp"
+
 #include <option.hpp>
 
 namespace qls {
@@ -28,11 +28,11 @@ public:
   CommandManager();
   ~CommandManager() noexcept = default;
 
-  bool addCommand(string_param commandName,
+  bool addCommand(std::string_view commandName,
                   const std::shared_ptr<Command> &commandPtr);
-  bool removeCommand(string_param commandName);
-  bool canFindCommand(string_param commandName) const;
-  std::shared_ptr<Command> getCommand(string_param commandName) const;
+  bool removeCommand(std::string_view commandName);
+  bool canFindCommand(std::string_view commandName) const;
+  std::shared_ptr<Command> getCommand(std::string_view commandName) const;
 
 private:
   std::map<std::string, std::shared_ptr<Command>, std::less<>> m_command_map;

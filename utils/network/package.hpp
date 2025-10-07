@@ -10,7 +10,6 @@
 
 #include "networkEndianness.hpp"
 #include "qls_error.h"
-#include "string_param.hpp"
 
 namespace qls {
 
@@ -28,13 +27,13 @@ public:
   Package(Package &&) = default;
 
   Package &operator=(const Package &) = delete;
-  Package &operator=(Package &&) = default;
+  Package &operator=(Package &&) noexcept = default;
 
   /**
    * @brief Writes data into the class.
    * @param data The binary data to write.
    */
-  void write(string_param data) { m_buffer += data; }
+  void write(std::string_view data) { m_buffer += data; }
 
   /**
    * @brief Checks if data can be read from the package.
@@ -127,16 +126,7 @@ public:
    * @brief Sets the buffer with the given data.
    * @param buffer The data to set in the buffer.
    */
-  void setBuffer(string_param buffer) {
-    if (!buffer.is_owned()) {
-      m_buffer = std::string_view(buffer);
-    }
-    if (buffer.is_pmr()) {
-      m_buffer = std::move(buffer).extract_pmr();
-    } else {
-      m_buffer = std::string_view(buffer);
-    }
-  }
+  void setBuffer(std::string_view buffer) { m_buffer = buffer; }
 
 private:
   std::pmr::string m_buffer;

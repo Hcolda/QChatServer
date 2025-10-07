@@ -6,7 +6,6 @@
 
 #include "connection.hpp"
 #include "dataPackage.hpp"
-#include "string_param.hpp"
 
 namespace qls {
 
@@ -30,7 +29,7 @@ public:
    * @param data Decrypted data
    * @param pack Original data packet
    */
-  asio::awaitable<void> process(string_param data, DataPackagePtr pack);
+  asio::awaitable<void> process(std::string_view data, DataPackagePtr pack);
 
 private:
   std::unique_ptr<SocketServiceImpl> m_impl;

@@ -17,8 +17,6 @@
 #include <asio.hpp>
 #include <mariadb/conncpp.hpp>
 
-#include "string_param.hpp"
-
 namespace qls {
 
 /**
@@ -41,8 +39,8 @@ public:
    * @param host Database host address.
    * @param port Database port.
    */
-  SQLDBProcess(string_param username, string_param password,
-               string_param database_name, string_param host,
+  SQLDBProcess(std::string_view username, std::string_view password,
+               std::string_view database_name, std::string_view host,
                unsigned short port) {
     m_username = username;
     m_password = password;
@@ -76,8 +74,8 @@ public:
    * @param host Database host address.
    * @param port Database port.
    */
-  void setSQLServerInfo(string_param username, string_param password,
-                        string_param database_name, string_param host,
+  void setSQLServerInfo(std::string_view username, std::string_view password,
+                        std::string_view database_name, std::string_view host,
                         unsigned short port) {
     m_username = username;
     m_password = password;
@@ -133,22 +131,6 @@ public:
   }
 
   /**
-   * @brief Submits a function to the task queue and returns a future to get the
-   * result.
-   * @tparam Func Function type.
-   * @tparam Args Argument types.
-   * @param func Function to submit.
-   * @param args Arguments to pass to the function.
-   * @return std::future to get the result of the function.
-   */
-  template <typename Func, typename... Args>
-  auto submit(Func &&func, Args &&...args)
-      -> std::future<decltype(func(args...))> {
-    return submit(asio::use_future, std::forward<Func>(func),
-                  std::forward<Args>(args)...);
-  }
-
-  /**
    * @brief Submits a function as an awaitable task.
    * @tparam R Return type.
    * @tparam Func Function type.
@@ -177,6 +159,21 @@ public:
           this->m_cv.notify_all();
         },
         token, std::forward<Func>(func), std::forward<Args>(args)...);
+  }
+
+  /**
+   * @brief Submits a function to the task queue and returns a future to get the
+   * result.
+   * @tparam Func Function type.
+   * @tparam Args Argument types.
+   * @param func Function to submit.
+   * @param args Arguments to pass to the function.
+   * @return std::future to get the result of the function.
+   */
+  template <typename Func, typename... Args>
+  auto submit(Func &&func, Args &&...args) {
+    return submit(asio::use_future, std::forward<Func>(func),
+                  std::forward<Args>(args)...);
   }
 
   /**

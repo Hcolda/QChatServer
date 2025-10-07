@@ -39,10 +39,10 @@ SocketService::get_connection_ptr() const {
   return m_impl->m_connection_ptr;
 }
 
-asio::awaitable<void> SocketService::process(string_param data,
+asio::awaitable<void> SocketService::process(std::string_view data,
                                              DataPackagePtr pack) {
   auto async_send =
-      [this](string_param data, DataPackage::RequestIDType requestID = 0,
+      [this](std::string_view data, DataPackage::RequestIDType requestID = 0,
              DataPackage::DataPackageType type = DataPackage::Unknown,
              DataPackage::LengthType sequence = 0,
              DataPackage::LengthType sequenceSize =

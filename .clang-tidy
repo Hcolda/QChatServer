@@ -4,6 +4,7 @@ Checks: >
   performance-*,
   readability-*,
   portability-*,
-  clang-analyzer-*
-# WarningsAsErrors: '*'
+  clang-analyzer-*,
+  misc-use-after-move
+WarningsAsErrors: ''
 HeaderFilterRegex: '.*'

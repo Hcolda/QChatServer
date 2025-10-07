@@ -62,16 +62,8 @@ void Network::setTlsConfig(
   }
 }
 
-void Network::run(string_param host, std::uint16_t port) {
-  if (host.is_owned()) {
-    if (host.is_std()) {
-      m_host = std::move(host).extract_std();
-    } else {
-      m_host = std::move(host).extract_pmr();
-    }
-  } else {
-    m_host = std::string(host);
-  }
+void Network::run(std::string_view host, std::uint16_t port) {
+  m_host = host;
   m_port = port;
 
   // Check if SSL context ptr is null
@@ -245,13 +237,13 @@ awaitable<void> Network::timeout(const std::chrono::nanoseconds &duration) {
   throw std::system_error(make_error_code(std::errc::timed_out));
 }
 
-inline std::string socket2ip(const Socket &s) {
-  auto endpoint = s.lowest_layer().remote_endpoint();
+inline std::string socket2ip(const Socket &socket) {
+  auto endpoint = socket.lowest_layer().remote_endpoint();
   return std::format("{}:{}", endpoint.address().to_string(),
                      static_cast<std::uint32_t>(endpoint.port()));
 }
 
-inline std::string showBinaryData(string_param data) {
+inline std::string showBinaryData(std::string_view data) {
   auto isShowableCharacter = [](unsigned char chr) -> bool {
     return 32 <= chr && chr <= 126;
   };

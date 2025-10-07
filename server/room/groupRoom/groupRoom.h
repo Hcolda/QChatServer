@@ -24,7 +24,7 @@ class GroupRoom : public TextDataRoom {
 public:
   struct UserDataStructure {
     std::string nickname;
-    UserLevel<1, 100> level;
+    UserLevel<> level;
   };
 
   GroupRoom(const GroupID &group_id, const UserID &administrator,
@@ -37,9 +37,9 @@ public:
   [[nodiscard]] bool hasMember(const UserID &user_id) const;
   [[nodiscard]] bool removeMember(const UserID &user_id);
 
-  void sendMessage(const UserID &sender_user_id, string_param message);
-  void sendTipMessage(const UserID &sender_user_id, string_param message);
-  void sendUserTipMessage(const UserID &sender_user_id, string_param,
+  void sendMessage(const UserID &sender_user_id, std::string_view message);
+  void sendTipMessage(const UserID &sender_user_id, std::string_view message);
+  void sendUserTipMessage(const UserID &sender_user_id, std::string_view,
                           const UserID &receiver_user_id);
   [[nodiscard]] std::vector<MessageResult>
   getMessage(const std::chrono::utc_clock::time_point &from,

@@ -13,7 +13,7 @@ struct SessionImpl {
 };
 
 static inline qjson::JObject makeJsonFunctionDataPackage(
-    string_param functionName,
+    std::string_view functionName,
     std::vector<std::pair<std::string, qjson::JObject>> list) {
   qjson::JObject json(qjson::JValueType::JDict);
   json["function"] = std::string_view(functionName);
@@ -25,7 +25,7 @@ static inline qjson::JObject makeJsonFunctionDataPackage(
 }
 
 static inline qjson::JObject
-makeJsonFunctionDataPackage(string_param functionName) {
+makeJsonFunctionDataPackage(std::string_view functionName) {
   qjson::JObject json(qjson::JValueType::JDict);
   json["function"] = std::string_view(functionName);
   json["parameters"] = qjson::JObject(qjson::JValueType::JDict);
@@ -42,7 +42,7 @@ Session::Session(Network &network)
 
 Session::~Session() noexcept = default;
 
-bool Session::registerUser(string_param email, string_param password,
+bool Session::registerUser(std::string_view email, std::string_view password,
                            UserID &newUserID) {
   auto returnPackage =
       m_impl->network
@@ -63,7 +63,7 @@ bool Session::registerUser(string_param email, string_param password,
   return returnState;
 }
 
-bool Session::loginUser(UserID user_id, string_param password) {
+bool Session::loginUser(UserID user_id, std::string_view password) {
   auto returnPackage =
       m_impl->network
           .send_data_with_result_n_option(
@@ -213,7 +213,7 @@ bool Session::rejectGroupApplication(GroupID group_id, UserID user_id) {
   return returnJson["state"].getString() == "success";
 }
 
-bool Session::sendFriendMessage(UserID user_id, string_param message) {
+bool Session::sendFriendMessage(UserID user_id, std::string_view message) {
   if (!m_impl->has_login)
     return false;
   auto returnPackage = m_impl->network
@@ -232,7 +232,7 @@ bool Session::sendFriendMessage(UserID user_id, string_param message) {
   return returnJson["state"].getString() == "success";
 }
 
-bool Session::sendGroupMessage(GroupID group_id, string_param message) {
+bool Session::sendGroupMessage(GroupID group_id, std::string_view message) {
   if (!m_impl->has_login)
     return false;
   auto returnPackage = m_impl->network

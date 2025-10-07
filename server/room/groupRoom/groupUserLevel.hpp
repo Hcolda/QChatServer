@@ -9,7 +9,9 @@
 
 namespace qls {
 
-template <int MIN_Level = 1, int MAX_Level = 100>
+constexpr static std::size_t min_level = 1;
+constexpr static std::size_t max_level = 100;
+template <int MIN_Level = min_level, int MAX_Level = max_level>
   requires(MIN_Level <= MAX_Level)
 class UserLevel final {
 public:

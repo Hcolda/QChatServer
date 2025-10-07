@@ -7,7 +7,7 @@
 
 #include "network.h"
 #include "option.hpp"
-#include "string_param.hpp"
+
 #include <groupid.hpp>
 #include <userid.hpp>
 
@@ -19,9 +19,9 @@ public:
   Session(Network &network);
   ~Session() noexcept;
 
-  bool registerUser(string_param email, string_param password,
+  bool registerUser(std::string_view email, std::string_view password,
                     UserID &newUserID);
-  bool loginUser(UserID user_id, string_param password);
+  bool loginUser(UserID user_id, std::string_view password);
 
   bool createFriendApplication(UserID userid);
   bool applyFriendApplication(UserID userid);
@@ -32,8 +32,8 @@ public:
   bool applyGroupApplication(GroupID groupid, UserID userid);
   bool rejectGroupApplication(GroupID groupid, UserID userid);
 
-  bool sendFriendMessage(UserID userid, string_param message);
-  bool sendGroupMessage(GroupID groupid, string_param message);
+  bool sendFriendMessage(UserID userid, std::string_view message);
+  bool sendGroupMessage(GroupID groupid, std::string_view message);
 
   bool removeFriend(UserID userid);
   bool leaveGroup(GroupID groupid);

@@ -9,7 +9,7 @@
 #include <unordered_map>
 
 #include "definition.hpp"
-#include "string_param.hpp"
+
 #include "userid.hpp"
 
 namespace qls {
@@ -36,14 +36,14 @@ public:
    * @param permissionName Name of the permission to modify.
    * @param type New permission type.
    */
-  void modifyPermission(string_param permissionName,
+  void modifyPermission(std::string_view permissionName,
                         PermissionType type = PermissionType::Default);
 
   /**
    * @brief Removes a permission from the permission list.
    * @param permissionName Name of the permission to remove.
    */
-  void removePermission(string_param permissionName);
+  void removePermission(std::string_view permissionName);
 
   /**
    * @brief Retrieves the type of a specific permission.
@@ -51,7 +51,7 @@ public:
    * @return PermissionType Type of the permission.
    */
   [[nodiscard]] PermissionType
-  getPermissionType(string_param permissionName) const;
+  getPermissionType(std::string_view permissionName) const;
 
   /**
    * @brief Retrieves the entire permission list.
@@ -85,7 +85,7 @@ public:
    * @return true if user has the permission, false otherwise.
    */
   [[nodiscard]] bool userHasPermission(const UserID &user_id,
-                                       string_param permissionName) const;
+                                       std::string_view permissionName) const;
 
   /**
    * @brief Retrieves the permission type for a specific user.

@@ -15,6 +15,11 @@ class RateLimiter final {
 public:
   constexpr static double default_global_capacity = 500.0;
   constexpr static double default_single_capacity = 5.0;
+  constexpr static double default_small_float = 1e-9;
+  constexpr static std::chrono::seconds default_time_interval =
+      std::chrono::seconds(30);
+  constexpr static std::chrono::minutes default_clean_time_min =
+      std::chrono::minutes(1);
 
   RateLimiter(double global_capacity = default_global_capacity,
               double single_capacity = default_single_capacity)
@@ -36,7 +41,7 @@ public:
         std::min(m_single_capacity.load(),
                  bucket.tokens +
                      (static_cast<double>((now - bucket.last_update).count()) *
-                      1e-9 * m_single_capacity));
+                      default_small_float * m_single_capacity));
     bucket.last_update = now;
     bool allow = bucket.tokens-- > 0;
     // Unlock the lock to keep speedy of the process
@@ -52,8 +57,8 @@ public:
     local_global_token = std::min(
         m_global_capacity.load(),
         local_global_token +
-            (static_cast<double>((now - m_last_update.load()).count()) * 1e-9 *
-             m_global_capacity));
+            (static_cast<double>((now - m_last_update.load()).count()) *
+             default_small_float * m_global_capacity));
     if (local_global_token <= 0) {
       allow = false;
     }
@@ -81,12 +86,12 @@ public:
     using namespace std::chrono_literals;
     asio::steady_timer timer(co_await asio::this_coro::executor);
     while (true) {
-      timer.expires_after(30s);
+      timer.expires_after(default_time_interval);
       co_await timer.async_wait(asio::use_awaitable);
       std::lock_guard<spinlock_mutex> lock(m_token_buckets_mutex);
       std::erase_if(m_token_buckets, [](const auto &iter) {
         return std::chrono::steady_clock::now() - iter.second.last_update >=
-               1min;
+               default_clean_time_min;
       });
     }
   }
